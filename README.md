@@ -21,6 +21,8 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-secret"
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
+OPENAI_API_KEY=""
+OPENAI_MODEL="gpt-4o-mini"
 ```
 
 ## Local Setup (Neon)
@@ -86,12 +88,14 @@ npm run prisma:seed
 - `/auth/register` registration
 - `/app/calendar` calendar
 - `/app/tasks` tasks
-- `/app/inbox` inbox dump
+- `/app/agent` AI agent chat
 - `/app/settings` settings
 
 ## Notes
 
-- All Calendar, Tasks, and Inbox operations are scoped by authenticated user ID.
+- Agent can create tasks/events automatically from chat input.
+- If `OPENAI_API_KEY` is not set, the agent uses a limited fallback parser.
+- All Calendar and Task operations are scoped by authenticated user ID.
 - Passwords are hashed with bcryptjs (10 rounds).
 - `/api/extract` is a stub endpoint for future AI extraction.
 
