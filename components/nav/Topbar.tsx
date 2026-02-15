@@ -25,7 +25,7 @@ export function Topbar({
   rightSlot,
 }: TopbarProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-900/70 bg-[#070708]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-30 bg-[#070708]/95 backdrop-blur-md">
       <div className="flex h-14 items-center px-4 md:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <button

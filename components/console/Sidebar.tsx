@@ -7,7 +7,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Home,
+  LayoutDashboard,
   Newspaper,
   Settings,
   X,
@@ -31,7 +31,12 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Workspace",
     items: [
-      { key: "home", label: "Home", icon: <Home className="h-4 w-4" />, href: "/app" },
+      {
+        key: "home",
+        label: "Dashboard",
+        icon: <LayoutDashboard className="h-4 w-4" />,
+        href: "/app",
+      },
       {
         key: "agent-builder",
         label: "AI Agent",
@@ -149,12 +154,12 @@ export function ConsoleSidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-900/80 bg-[#070708] transition-transform md:static md:z-0 md:translate-x-0 md:transition-[width] md:duration-200",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-x-hidden border-r border-zinc-900/80 bg-[#070708] transition-transform md:static md:z-0 md:translate-x-0 md:transition-[width] md:duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        <div className="flex items-center justify-between border-b border-zinc-900/80 px-4 py-4">
+        <div className="flex items-center justify-between px-4 py-4">
           <div className="min-h-[44px] min-w-0">
             <p
               className={cn(
@@ -178,7 +183,7 @@ export function ConsoleSidebar({
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
           {SIDEBAR_SECTIONS.map((section) => (
             <div key={section.label} className="mb-4">
               <p

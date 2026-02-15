@@ -31,7 +31,7 @@ export function ConsoleShell({ activeNavKey, user, children }: ConsoleShellProps
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#070708] text-zinc-100">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#070708] text-zinc-100">
       <ConsoleSidebar
         activeNavKey={activeNavKey}
         mobileOpen={mobileSidebarOpen}
@@ -40,12 +40,12 @@ export function ConsoleShell({ activeNavKey, user, children }: ConsoleShellProps
         onToggleCollapse={() => setCollapsed((value) => !value)}
       />
 
-      <div className="min-h-screen min-w-0 flex-1">
+      <div className="min-h-screen min-w-0 flex-1 overflow-x-hidden">
         <Topbar
           onMenuClick={() => setMobileSidebarOpen(true)}
           user={user}
         />
-        <main className="min-h-[calc(100vh-56px)] bg-[#070708] p-4 md:p-6">
+        <main className="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[#070708] p-4 md:p-6">
           {children}
         </main>
       </div>

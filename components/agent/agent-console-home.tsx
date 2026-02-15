@@ -12,14 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  Bot,
   Check,
   ChevronDown,
-  Globe,
-  ImagePlus,
   Loader2,
   Mic,
-  MoreHorizontal,
   Paperclip,
   Plus,
   Sparkles,
@@ -83,6 +79,24 @@ const PROVIDER_LABELS: Record<LlmProvider, string> = {
   anthropic: "Claude",
   google: "Google",
 };
+
+function getLinkedProviders(config: AgentConfig | null) {
+  if (!config) {
+    return [] as LlmProvider[];
+  }
+
+  const linked: LlmProvider[] = [];
+  if (config.hasOpenaiApiKey) {
+    linked.push("openai");
+  }
+  if (config.hasAnthropicApiKey) {
+    linked.push("anthropic");
+  }
+  if (config.hasGoogleApiKey) {
+    linked.push("google");
+  }
+  return linked;
+}
 
 export function AgentConsoleHome() {
   const router = useRouter();
@@ -230,18 +244,44 @@ export function AgentConsoleHome() {
     return config.hasGoogleApiKey;
   }
 
+  const linkedProviders = useMemo(() => getLinkedProviders(config), [config]);
+  const hasLinkedProvider = linkedProviders.length > 0;
+  const modelOptions = useMemo(() => {
+    if (!config || !hasLinkedProvider || !linkedProviders.includes(config.provider)) {
+      return [];
+    }
+
+    return config.availableModels[config.provider];
+  }, [config, hasLinkedProvider, linkedProviders]);
+
+  useEffect(() => {
+    if (!config || linkedProviders.length === 0 || isSwitchingConfig) {
+      return;
+    }
+
+    if (linkedProviders.includes(config.provider)) {
+      return;
+    }
+
+    const nextProvider = linkedProviders[0];
+    const nextModel = defaultModelForProvider(nextProvider);
+
+    setConfig((current) =>
+      current
+        ? {
+            ...current,
+            provider: nextProvider,
+            model: nextModel,
+          }
+        : current,
+    );
+
+    void persistConfig(nextProvider, nextModel);
+  }, [config, linkedProviders, isSwitchingConfig]);
+
   const canCreate = useMemo(() => {
     return title.trim().length > 0 && promptText.trim().length > 0;
   }, [title, promptText]);
-
-  function openCreateModal() {
-    setError(null);
-    setToolMessage(null);
-    setTitle("");
-    setDescription("");
-    setPromptText("");
-    setModalOpen(true);
-  }
 
   async function generateFromDescription(rawDescription?: string) {
     const descriptionInput = (rawDescription ?? composerInput).trim();
@@ -335,19 +375,28 @@ export function AgentConsoleHome() {
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              disabled={!config || isLoadingConfig}
+              disabled={!config || isLoadingConfig || !hasLinkedProvider}
               className={cn(
                 "inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 text-sm text-zinc-200 outline-none transition hover:border-zinc-700 hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-500",
-                (!config || isLoadingConfig) && "cursor-not-allowed opacity-70",
+                (!config || isLoadingConfig || !hasLinkedProvider) &&
+                  "cursor-not-allowed opacity-70",
               )}
               aria-label="Select LLM and model"
             >
               <span className="font-medium">
-                {config ? PROVIDER_LABELS[config.provider] : "Loading LLM"}
+                {!config || isLoadingConfig
+                  ? "Loading LLM"
+                  : hasLinkedProvider
+                    ? PROVIDER_LABELS[config.provider]
+                    : "No linked LLM"}
               </span>
               <span className="text-zinc-500">|</span>
               <span className="max-w-[180px] truncate text-zinc-300">
-                {config?.model ?? "Loading model"}
+                {!config || isLoadingConfig
+                  ? "Loading model"
+                  : hasLinkedProvider
+                    ? config.model
+                    : "Add API key in Settings"}
               </span>
               <ChevronDown className="h-4 w-4 text-zinc-500" />
             </button>
@@ -364,7 +413,7 @@ export function AgentConsoleHome() {
               </div>
 
               <div className="space-y-1 px-1 pb-2">
-                {(Object.keys(LLM_MODELS) as LlmProvider[]).map((provider) => (
+                {linkedProviders.map((provider) => (
                   <DropdownMenu.Item
                     key={provider}
                     onSelect={() => handleProviderSelect(provider)}
@@ -383,7 +432,7 @@ export function AgentConsoleHome() {
               </div>
 
               <div className="max-h-[220px] space-y-1 overflow-y-auto px-1">
-                {(config ? config.availableModels[config.provider] : []).map((model) => (
+                {modelOptions.map((model) => (
                   <DropdownMenu.Item
                     key={model}
                     onSelect={() => handleModelSelect(model)}
@@ -399,7 +448,9 @@ export function AgentConsoleHome() {
 
               <div className="px-2 py-1 text-xs text-zinc-500">
                 {config
-                  ? selectedProviderHasKey()
+                  ? !hasLinkedProvider
+                    ? "No linked provider. Add an API key in Settings."
+                    : selectedProviderHasKey()
                     ? "API key linked for selected provider."
                     : "No API key for selected provider. Add one in Settings."
                   : "Loading provider status..."}
@@ -415,18 +466,18 @@ export function AgentConsoleHome() {
         )}
       </div>
 
-      <div className="mx-auto mt-12 w-full max-w-4xl text-center sm:mt-14">
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
+      <div className="mx-auto mt-12 w-full max-w-3xl text-center sm:mt-14">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
           What can I help with?
         </h1>
 
-        <div className="mt-8 rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-4">
+        <div className="mx-auto mt-7 w-full rounded-[24px] border border-zinc-800 bg-zinc-900/75 p-3 shadow-[0_12px_36px_rgba(0,0,0,0.32)] sm:p-4">
           <textarea
             rows={2}
             value={composerInput}
             onChange={(event) => setComposerInput(event.target.value)}
             onKeyDown={onComposerKeyDown}
-            className="w-full resize-none bg-transparent px-2 py-2 text-lg text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+            className="w-full resize-none border-0 bg-transparent px-2 py-2 text-base text-zinc-100 placeholder:text-zinc-500 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
             placeholder="Ask anything"
             aria-label="Ask anything"
           />
@@ -456,41 +507,6 @@ export function AgentConsoleHome() {
                     >
                       <Paperclip className="h-4 w-4 text-zinc-400" />
                       Add photos & files
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={openCreateModal}
-                      className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm text-zinc-200 outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                    >
-                      <Sparkles className="h-4 w-4 text-zinc-400" />
-                      Create prompt manually
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={() => handleToolAction("Create image")}
-                      className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm text-zinc-200 outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                    >
-                      <ImagePlus className="h-4 w-4 text-zinc-400" />
-                      Create image
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={() => handleToolAction("Web search")}
-                      className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm text-zinc-200 outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                    >
-                      <Globe className="h-4 w-4 text-zinc-400" />
-                      Web search
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={() => handleToolAction("Agent mode")}
-                      className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm text-zinc-200 outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                    >
-                      <Bot className="h-4 w-4 text-zinc-400" />
-                      Agent mode
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={() => handleToolAction("More")}
-                      className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm text-zinc-200 outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-zinc-400" />
-                      More
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
