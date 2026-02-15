@@ -1,19 +1,13 @@
 "use client";
 
-import { LogoutButton } from "@/components/logout-button";
-
 type TopbarProps = {
-  user: {
-    username: string;
-    email?: string;
-  };
   onMenuClick: () => void;
 };
 
-export function Topbar({ user, onMenuClick }: TopbarProps) {
+export function Topbar({ onMenuClick }: TopbarProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-black/95 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full items-center px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -33,14 +27,6 @@ export function Topbar({ user, onMenuClick }: TopbarProps) {
             </svg>
           </button>
           <span className="font-display text-lg font-semibold tracking-tight">BlackDesk</span>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-panel px-3 py-2 shadow-glow">
-          <div className="hidden text-right sm:block">
-            <p className="text-xs font-semibold uppercase tracking-wider text-textMain">{user.username}</p>
-            <p className="text-[11px] text-textMuted">{user.email ?? "No email"}</p>
-          </div>
-          <LogoutButton />
         </div>
       </div>
     </header>

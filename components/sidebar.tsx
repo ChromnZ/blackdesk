@@ -1,23 +1,40 @@
 "use client";
 
+import { LogoutButton } from "@/components/logout-button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
+  { href: "/app", label: "Home" },
+  { href: "/app/agent", label: "AI Agent" },
+];
+
+const SECONDARY_NAV_ITEMS = [
   { href: "/app/calendar", label: "Calendar" },
   { href: "/app/tasks", label: "Tasks" },
-  { href: "/app/agent", label: "AI Agent" },
-  { href: "/app/settings", label: "Settings" },
 ];
 
 type SidebarProps = {
+  user: {
+    username: string;
+    email?: string;
+  };
   open: boolean;
   onClose: () => void;
 };
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+function isActivePath(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function Sidebar({ user, open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const isSettingsActive = isActivePath(pathname, "/app/settings");
 
   return (
     <>
@@ -43,8 +60,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+          {PRIMARY_NAV_ITEMS.map((item) => {
+            const isActive = isActivePath(pathname, item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "block rounded-md border px-3 py-2 text-sm transition",
+                  isActive
+                    ? "border-white/20 bg-white/10 text-white"
+                    : "border-transparent text-textMuted hover:border-border hover:bg-panelSoft hover:text-textMain",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="my-3 h-px bg-border" />
+
+          {SECONDARY_NAV_ITEMS.map((item) => {
+            const isActive = isActivePath(pathname, item.href);
 
             return (
               <Link
@@ -63,6 +102,50 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             );
           })}
         </nav>
+
+        <div className="mt-auto border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-black/40 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">
+                {user.username}
+              </p>
+              <p className="truncate text-[11px] text-textMuted">{user.email ?? "No email"}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <LogoutButton
+                label="Logout"
+                className="rounded-md border border-white/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-black transition hover:bg-white/90"
+              />
+              <Link
+                href="/app/settings"
+                aria-label="Open settings"
+                onClick={onClose}
+                className={cn(
+                  "inline-flex h-8 w-8 items-center justify-center rounded-md border transition",
+                  isSettingsActive
+                    ? "border-white/20 bg-white/10 text-white"
+                    : "border-border bg-panel text-textMuted hover:bg-panelSoft hover:text-textMain",
+                )}
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10.325 4.317a1.724 1.724 0 0 1 3.35 0 1.724 1.724 0 0 0 2.573 1.066 1.724 1.724 0 0 1 2.494 2.494 1.724 1.724 0 0 0 1.066 2.573 1.724 1.724 0 0 1 0 3.35 1.724 1.724 0 0 0-1.066 2.573 1.724 1.724 0 0 1-2.494 2.494 1.724 1.724 0 0 0-2.573 1.066 1.724 1.724 0 0 1-3.35 0 1.724 1.724 0 0 0-2.573-1.066 1.724 1.724 0 0 1-2.494-2.494 1.724 1.724 0 0 0-1.066-2.573 1.724 1.724 0 0 1 0-3.35 1.724 1.724 0 0 0 1.066-2.573 1.724 1.724 0 0 1 2.494-2.494 1.724 1.724 0 0 0 2.573-1.066Z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

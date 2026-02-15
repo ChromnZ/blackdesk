@@ -46,7 +46,7 @@ export function LoginForm() {
       username: username.trim().toLowerCase(),
       password,
       redirect: false,
-      callbackUrl: "/app/calendar",
+      callbackUrl: "/app",
     });
 
     setIsLoading(false);
@@ -56,14 +56,14 @@ export function LoginForm() {
       return;
     }
 
-    router.push(result.url ?? "/app/calendar");
+    router.push(result.url ?? "/app");
     router.refresh();
   }
 
   async function handleGoogleLogin() {
     setError(null);
     setIsLoading(true);
-    await signIn("google", { callbackUrl: "/app/calendar" });
+    await signIn("google", { callbackUrl: "/app" });
   }
 
   return (

@@ -28,10 +28,14 @@ export function AppShell({ children, user }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-bg text-textMain md:flex">
-      <Sidebar open={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        user={user}
+        open={isSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <Topbar user={user} onMenuClick={() => setSidebarOpen((prev) => !prev)} />
+        <Topbar onMenuClick={() => setSidebarOpen((prev) => !prev)} />
         <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>
