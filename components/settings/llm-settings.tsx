@@ -84,7 +84,7 @@ function providerById(provider: ProviderId) {
 
 export function LlmSettings() {
   const [form, setForm] = useState<FormState>(initialFormState);
-  const [activeProvider, setActiveProvider] = useState<ProviderId>("openai");
+  const [activeProvider, setActiveProvider] = useState<ProviderId | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +117,10 @@ export function LlmSettings() {
       value: form.googleApiKey,
       mask: form.googleApiKeyMask,
     };
+  }
+
+  function toggleProvider(providerId: ProviderId) {
+    setActiveProvider((current) => (current === providerId ? null : providerId));
   }
 
   function setProviderValue(providerId: ProviderId, value: string) {
@@ -300,8 +304,10 @@ export function LlmSettings() {
     }
   }
 
-  const activeProviderConfig = providerById(activeProvider);
-  const activeProviderStatus = getProviderStatus(activeProviderConfig.id);
+  const activeProviderConfig = activeProvider ? providerById(activeProvider) : null;
+  const activeProviderStatus = activeProviderConfig
+    ? getProviderStatus(activeProviderConfig.id)
+    : null;
   const hasPendingChanges =
     form.openaiApiKey.trim().length > 0 ||
     form.anthropicApiKey.trim().length > 0 ||
@@ -341,7 +347,7 @@ export function LlmSettings() {
                 <button
                   key={provider.id}
                   type="button"
-                  onClick={() => setActiveProvider(provider.id)}
+                  onClick={() => toggleProvider(provider.id)}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition",
                     activeProvider === provider.id
@@ -372,66 +378,72 @@ export function LlmSettings() {
             })}
           </div>
 
-          <div className="space-y-3 rounded-md border border-border bg-panelSoft p-3">
-            <div className="flex items-center justify-between gap-2">
-              <label
-                htmlFor={`${activeProviderConfig.id}-key`}
-                className="text-sm text-textMuted"
-              >
-                {activeProviderConfig.label} API Key
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-textMuted">
-                  {activeProviderStatus.hasKey ? "Configured" : "Not set"}
-                </span>
-                {activeProviderStatus.hasKey && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChangeProvider(activeProviderConfig.id);
-                        setChangeApiKeyValue("");
-                        setChangeError(null);
-                      }}
-                      disabled={isSaving}
-                      className="rounded-md border border-border bg-panel px-2 py-1 text-xs text-textMuted transition hover:text-textMain disabled:opacity-60"
-                    >
-                      Change
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteProvider(activeProviderConfig.id)}
-                      disabled={isSaving}
-                      className="rounded-md border border-red-700/50 bg-red-900/20 px-2 py-1 text-xs text-red-300 transition hover:bg-red-900/35 disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
+          {activeProviderConfig && activeProviderStatus ? (
+            <div className="space-y-3 rounded-md border border-border bg-panelSoft p-3">
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor={`${activeProviderConfig.id}-key`}
+                  className="text-sm text-textMuted"
+                >
+                  {activeProviderConfig.label} API Key
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-textMuted">
+                    {activeProviderStatus.hasKey ? "Configured" : "Not set"}
+                  </span>
+                  {activeProviderStatus.hasKey && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangeProvider(activeProviderConfig.id);
+                          setChangeApiKeyValue("");
+                          setChangeError(null);
+                        }}
+                        disabled={isSaving}
+                        className="rounded-md border border-border bg-panel px-2 py-1 text-xs text-textMuted transition hover:text-textMain disabled:opacity-60"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteProvider(activeProviderConfig.id)}
+                        disabled={isSaving}
+                        className="rounded-md border border-red-700/50 bg-red-900/20 px-2 py-1 text-xs text-red-300 transition hover:bg-red-900/35 disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {activeProviderStatus.hasKey ? (
-              <input
-                id={`${activeProviderConfig.id}-key`}
-                value={activeProviderStatus.mask ?? "******"}
-                readOnly
-                aria-readonly="true"
-                className="w-full rounded-md border border-border bg-panel px-3 py-2 font-mono text-sm tracking-[0.08em] text-textMain"
-              />
-            ) : (
-              <input
-                id={`${activeProviderConfig.id}-key`}
-                type="password"
-                value={activeProviderStatus.value}
-                onChange={(event) =>
-                  setProviderValue(activeProviderConfig.id, event.target.value)
-                }
-                placeholder={activeProviderConfig.placeholder}
-                className="w-full rounded-md border border-border bg-panel px-3 py-2 text-sm text-textMain"
-              />
-            )}
-          </div>
+              {activeProviderStatus.hasKey ? (
+                <input
+                  id={`${activeProviderConfig.id}-key`}
+                  value={activeProviderStatus.mask ?? "******"}
+                  readOnly
+                  aria-readonly="true"
+                  className="w-full rounded-md border border-border bg-panel px-3 py-2 font-mono text-sm tracking-[0.08em] text-textMain"
+                />
+              ) : (
+                <input
+                  id={`${activeProviderConfig.id}-key`}
+                  type="password"
+                  value={activeProviderStatus.value}
+                  onChange={(event) =>
+                    setProviderValue(activeProviderConfig.id, event.target.value)
+                  }
+                  placeholder={activeProviderConfig.placeholder}
+                  className="w-full rounded-md border border-border bg-panel px-3 py-2 text-sm text-textMain"
+                />
+              )}
+            </div>
+          ) : (
+            <p className="rounded-md border border-border bg-panelSoft/70 px-3 py-2 text-sm text-textMuted">
+              Click a provider icon to show or hide its details.
+            </p>
+          )}
 
           <button
             type="button"

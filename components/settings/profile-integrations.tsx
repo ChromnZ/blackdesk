@@ -47,6 +47,7 @@ export function ProfileIntegrations() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
+  const [isGoogleDetailsOpen, setIsGoogleDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -505,7 +506,13 @@ export function ProfileIntegrations() {
         <h3 className="font-display text-base">Integrations</h3>
         <div className="mt-3 rounded-md border border-border bg-panelSoft/80 px-3 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => setIsGoogleDetailsOpen((current) => !current)}
+              className="flex items-start gap-3 rounded-md border border-border bg-panel px-2.5 py-2 text-left transition hover:bg-panelSoft"
+              aria-expanded={isGoogleDetailsOpen}
+              aria-controls="google-integration-details"
+            >
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-textMain">
                 <Chrome className="h-4 w-4" />
               </span>
@@ -517,7 +524,7 @@ export function ProfileIntegrations() {
                     : "Not connected"}
                 </p>
               </div>
-            </div>
+            </button>
             {googleLinked ? (
               <span className="rounded-md border border-emerald-700/50 bg-emerald-900/20 px-2.5 py-1 text-xs text-emerald-300">
                 Linked
@@ -534,8 +541,11 @@ export function ProfileIntegrations() {
             )}
           </div>
 
-          {googleLinked && (
-            <div className="mt-3 space-y-3 rounded-md border border-border bg-panel/60 p-3">
+          {isGoogleDetailsOpen && googleLinked && (
+            <div
+              id="google-integration-details"
+              className="mt-3 space-y-3 rounded-md border border-border bg-panel/60 p-3"
+            >
               {!hasPassword && (
                 <>
                   <p className="text-xs text-textMuted">
