@@ -14,6 +14,10 @@ export default async function ProtectedLayout({
     redirect("/auth/login");
   }
 
+  if (!session.user.usernameSetupComplete) {
+    redirect("/auth/complete-username");
+  }
+
   return (
     <AppShell
       user={{

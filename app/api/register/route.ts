@@ -1,50 +1,63 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
-const USERNAME_REGEX = /^[a-z0-9_]{3,24}$/;
+const USERNAME_REGEX = /^[a-z0-9]{3,24}$/;
+
+const registerSchema = z
+  .object({
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .refine((value) => USERNAME_REGEX.test(value), {
+        message:
+          "Username must be 3-24 characters and use only lowercase letters and numbers.",
+      }),
+    email: z.string().trim().toLowerCase().email("A valid email is required."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const username =
-      typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
-    const password = typeof body.password === "string" ? body.password : "";
-    const confirmPassword =
-      typeof body.confirmPassword === "string" ? body.confirmPassword : "";
-
-    if (!USERNAME_REGEX.test(username)) {
+    const payload = registerSchema.safeParse(await request.json());
+    if (!payload.success) {
       return NextResponse.json(
         {
-          error:
-            "Username must be 3-24 characters and use only lowercase letters, numbers, and underscores.",
+          error: payload.error.issues[0]?.message ?? "Invalid registration payload.",
         },
         { status: 400 },
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
-        { status: 400 },
-      );
-    }
+    const { username, email, password } = payload.data;
 
-    if (password !== confirmPassword) {
-      return NextResponse.json(
-        { error: "Passwords do not match." },
-        { status: 400 },
-      );
-    }
-
-    const existing = await prisma.user.findUnique({
+    const existingUsername = await prisma.user.findUnique({
       where: { username },
       select: { id: true },
     });
 
-    if (existing) {
+    if (existingUsername) {
       return NextResponse.json(
         { error: "Username already exists." },
+        { status: 409 },
+      );
+    }
+
+    const existingEmail = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: "Email is already in use." },
         { status: 409 },
       );
     }
@@ -54,6 +67,7 @@ export async function POST(request: Request) {
     await prisma.user.create({
       data: {
         username,
+        email,
         passwordHash,
         name: username,
       },

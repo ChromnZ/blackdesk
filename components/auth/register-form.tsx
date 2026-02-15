@@ -8,6 +8,7 @@ export function RegisterForm() {
   const router = useRouter();
 
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export function RegisterForm() {
       },
       body: JSON.stringify({
         username,
+        email,
         password,
         confirmPassword,
       }),
@@ -70,12 +72,32 @@ export function RegisterForm() {
             required
             minLength={3}
             maxLength={24}
-            pattern="[a-z0-9_]+"
+            pattern="[a-z0-9]+"
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value.toLowerCase())}
             className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
-            placeholder="your_username"
+            placeholder="yourusername"
+          />
+          <p className="mt-1 text-xs text-textMuted">
+            Use only lowercase letters and numbers.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="email" className="mb-1 block text-sm text-textMuted">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            placeholder="you@example.com"
           />
         </div>
 

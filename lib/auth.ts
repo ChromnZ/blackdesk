@@ -7,19 +7,8 @@ import GoogleProvider from "next-auth/providers/google";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 
-function baseUsername(input: string) {
-  const sanitized = input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "")
-    .slice(0, 20);
-
-  return sanitized.length > 0 ? sanitized : "user";
-}
-
-async function buildUniqueUsername(seed: string) {
-  const base = baseUsername(seed);
-  let candidate = base;
+async function buildTemporaryUsername() {
+  let candidate = `u${randomBytes(8).toString("hex")}`;
 
   while (true) {
     const exists = await prisma.user.findUnique({
@@ -31,9 +20,7 @@ async function buildUniqueUsername(seed: string) {
       return candidate;
     }
 
-    const suffix = randomBytes(2).toString("hex");
-    const maxBaseLength = Math.max(1, 20 - suffix.length - 1);
-    candidate = `${base.slice(0, maxBaseLength)}_${suffix}`;
+    candidate = `u${randomBytes(8).toString("hex")}`;
   }
 }
 
@@ -43,12 +30,12 @@ const adapter: Adapter = {
   ...prismaAdapter,
   async createUser(data: Omit<AdapterUser, "id">) {
     const email = data.email?.toLowerCase() ?? null;
-    const seed = email?.split("@")[0] ?? data.name ?? "user";
-    const username = await buildUniqueUsername(seed);
+    const username = await buildTemporaryUsername();
 
     return prisma.user.create({
       data: {
         username,
+        usernameSetupComplete: false,
         email,
         name: data.name ?? null,
         image: data.image ?? null,
@@ -107,6 +94,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
@@ -114,14 +102,23 @@ export const authOptions: NextAuthOptions = {
       if (user?.id) {
         token.sub = user.id;
         token.username = user.username ?? token.username;
+        token.email = user.email;
+        token.usernameSetupComplete = user.usernameSetupComplete ?? token.usernameSetupComplete;
       }
 
-      if (token.sub && !token.username) {
+      if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { username: true },
+          select: {
+            username: true,
+            email: true,
+            usernameSetupComplete: true,
+          },
         });
-        token.username = dbUser?.username;
+        token.username = dbUser?.username ?? token.username;
+        token.email = dbUser?.email ?? token.email;
+        token.usernameSetupComplete =
+          dbUser?.usernameSetupComplete ?? token.usernameSetupComplete;
       }
 
       return token;
@@ -130,6 +127,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub;
         session.user.username = token.username ?? session.user.name ?? "user";
+        session.user.usernameSetupComplete = Boolean(token.usernameSetupComplete);
+        session.user.email = token.email ?? null;
       }
       return session;
     },

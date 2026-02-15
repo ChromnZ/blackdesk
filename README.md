@@ -94,6 +94,8 @@ npm run prisma:seed
 - `/` landing page
 - `/auth/login` login
 - `/auth/register` registration
+- `/auth/complete-username` one-time username setup for new Google sign-ins
+- `/app` dashboard home
 - `/app/calendar` calendar
 - `/app/tasks` tasks
 - `/app/agent` AI agent chat
@@ -101,6 +103,11 @@ npm run prisma:seed
 
 ## Notes
 
+- Usernames are unique, lowercase, and locked after setup.
+- Credentials registration requires email + username + password.
+- New Google users are prompted to choose a permanent username before entering the app.
+- Settings includes Integrations so credentials users can link Google login.
+- Email can be updated from Settings.
 - Users can configure their own LLM provider, model, and API keys in Settings.
 - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
 - Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).

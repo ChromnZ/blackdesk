@@ -9,15 +9,16 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  username      String    @unique
-  passwordHash  String?
-  email         String?   @unique
-  name          String?
-  image         String?
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  username              String    @unique
+  usernameSetupComplete Boolean   @default(true)
+  passwordHash          String?
+  email                 String?   @unique
+  name                  String?
+  image                 String?
+  emailVerified         DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   accounts   Account[]
   sessions   Session[]

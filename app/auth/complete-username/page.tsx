@@ -1,21 +1,22 @@
-import { LoginForm } from "@/components/auth/login-form";
+import { CompleteUsernameForm } from "@/components/auth/complete-username-form";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
-export default async function LoginPage() {
+export default async function CompleteUsernamePage() {
   const session = await getServerSession(authOptions);
-  if (session?.user?.id) {
-    if (!session.user.usernameSetupComplete) {
-      redirect("/auth/complete-username");
-    }
+
+  if (!session?.user?.id) {
+    redirect("/auth/login");
+  }
+
+  if (session.user.usernameSetupComplete) {
     redirect("/app");
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-4">
-      <LoginForm />
+      <CompleteUsernameForm />
     </main>
   );
 }
-

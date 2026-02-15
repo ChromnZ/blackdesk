@@ -59,7 +59,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
           <p className="mt-2 font-display text-2xl font-semibold">BlackDesk</p>
         </div>
 
-        <nav className="space-y-1">
+        <nav className="flex-1 space-y-1 overflow-y-auto">
           {PRIMARY_NAV_ITEMS.map((item) => {
             const isActive = isActivePath(pathname, item.href);
 
@@ -103,7 +103,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="mt-auto border-t border-border pt-4">
+        <div className="border-t border-border pt-4">
           <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-black/40 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">

@@ -6,6 +6,9 @@ import { redirect } from "next/navigation";
 export default async function RegisterPage() {
   const session = await getServerSession(authOptions);
   if (session?.user?.id) {
+    if (!session.user.usernameSetupComplete) {
+      redirect("/auth/complete-username");
+    }
     redirect("/app");
   }
 
