@@ -112,6 +112,7 @@ npm run prisma:seed
 - When Google is linked/logged in, BlackDesk syncs Google email and profile photo.
 - Theme selector is available in Settings and the sidebar footer (light/dark/system).
 - Users configure AI API keys in Settings, then choose provider/model from the AI Agent page.
+- AI Agent includes conversation history with multi-chat threads (rename/delete/new chat).
 - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
 - Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).
 - Agent can create tasks/events automatically from chat input.

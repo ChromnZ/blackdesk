@@ -19,6 +19,7 @@ const messageSchema = z.object({
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(3000),
   history: z.array(messageSchema).max(20).optional(),
+  conversationId: z.string().cuid().optional(),
   provider: z.string().optional(),
   model: z.string().optional(),
 });
@@ -58,6 +59,44 @@ function parseDate(value?: string | null) {
     return null;
   }
   return parsed;
+}
+
+function buildConversationTitle(input: string) {
+  const normalized = input.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "New chat";
+  }
+  return normalized.slice(0, 80);
+}
+
+function buildMessageMetaFromDecision(data: {
+  action: "reply" | "create_task" | "create_event";
+  createdTask?: {
+    title: string;
+    status: string;
+    dueAt: Date | null;
+  };
+  createdEvent?: {
+    title: string;
+    startAt: Date;
+    endAt: Date;
+  };
+}) {
+  if (data.action === "create_task" && data.createdTask) {
+    const due = data.createdTask.dueAt
+      ? new Date(data.createdTask.dueAt).toLocaleString()
+      : "No due date";
+
+    return `Task created: ${data.createdTask.title} (${data.createdTask.status}, ${due})`;
+  }
+
+  if (data.action === "create_event" && data.createdEvent) {
+    const start = new Date(data.createdEvent.startAt).toLocaleString();
+    const end = new Date(data.createdEvent.endAt).toLocaleString();
+    return `Event created: ${data.createdEvent.title} (${start} - ${end})`;
+  }
+
+  return null;
 }
 
 function fallbackDecision(input: string): AgentDecision {
@@ -334,9 +373,73 @@ export async function POST(request: Request) {
     }
 
     const message = parsedRequest.data.message.trim();
-    const history = parsedRequest.data.history ?? [];
+    const fallbackHistory = parsedRequest.data.history ?? [];
+    const requestedConversationId = parsedRequest.data.conversationId ?? null;
     const requestProvider = parsedRequest.data.provider;
     const requestModel = parsedRequest.data.model;
+
+    let conversation = requestedConversationId
+      ? await prisma.agentConversation.findFirst({
+          where: {
+            id: requestedConversationId,
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        })
+      : null;
+
+    if (requestedConversationId && !conversation) {
+      return NextResponse.json(
+        { error: "Conversation not found." },
+        { status: 404 },
+      );
+    }
+
+    if (!conversation) {
+      conversation = await prisma.agentConversation.create({
+        data: {
+          userId,
+          title: buildConversationTitle(message),
+        },
+        select: {
+          id: true,
+        },
+      });
+    }
+
+    const persistedHistory = await prisma.agentMessage.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        role: true,
+        content: true,
+      },
+    });
+
+    const history: ChatHistory =
+      persistedHistory.length > 0
+        ? [...persistedHistory]
+            .reverse()
+            .filter((entry) => entry.role === "user" || entry.role === "assistant")
+            .map((entry) => ({
+              role: entry.role as "user" | "assistant",
+              content: entry.content,
+            }))
+        : fallbackHistory;
+
+    const userMessageRecord = await prisma.agentMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     const userSettings = await prisma.userLlmSettings.findUnique({
       where: { userId },
@@ -354,13 +457,13 @@ export async function POST(request: Request) {
         ? userSettings.provider
         : "openai";
 
-    const requestedProvider = requestProvider && isLlmProvider(requestProvider)
-      ? requestProvider
-      : null;
+    const requestedProvider =
+      requestProvider && isLlmProvider(requestProvider) ? requestProvider : null;
     const provider = requestedProvider ?? persistedProvider;
 
     const persistedModel =
-      userSettings?.model && isValidModelForProvider(persistedProvider, userSettings.model)
+      userSettings?.model &&
+      isValidModelForProvider(persistedProvider, userSettings.model)
         ? userSettings.model
         : defaultModelForProvider(persistedProvider);
 
@@ -402,107 +505,119 @@ export async function POST(request: Request) {
       usedFallback = true;
     }
 
+    let responseAction: "reply" | "create_task" | "create_event" = "reply";
+    let responseReply = decision.reply;
+    let responseCreatedTask:
+      | {
+          id: string;
+          title: string;
+          status: string;
+          dueAt: Date | null;
+        }
+      | undefined;
+    let responseCreatedEvent:
+      | {
+          id: string;
+          title: string;
+          startAt: Date;
+          endAt: Date;
+        }
+      | undefined;
+
     if (decision.action === "create_task" && decision.task) {
       const title = decision.task.title.trim();
       if (!title) {
-        return NextResponse.json(
-          {
-            action: "reply",
-            reply: "I need a valid task title before creating it.",
-            usedFallback,
-            provider,
-            model,
-            hasLinkedAi,
-            availableModels: LLM_MODELS,
+        responseAction = "reply";
+        responseReply = "I need a valid task title before creating it.";
+      } else {
+        const dueAt = parseDate(decision.task.dueAt);
+
+        const task = await prisma.task.create({
+          data: {
+            userId,
+            title,
+            dueAt,
+            priority: decision.task.priority ?? null,
+            status: decision.task.status ?? "todo",
+            notes: decision.task.notes?.trim() || null,
           },
-          { status: 200 },
-        );
-      }
+        });
 
-      const dueAt = parseDate(decision.task.dueAt);
-
-      const task = await prisma.task.create({
-        data: {
-          userId,
-          title,
-          dueAt,
-          priority: decision.task.priority ?? null,
-          status: decision.task.status ?? "todo",
-          notes: decision.task.notes?.trim() || null,
-        },
-      });
-
-      return NextResponse.json({
-        action: "create_task",
-        reply: decision.reply,
-        createdTask: {
+        responseAction = "create_task";
+        responseCreatedTask = {
           id: task.id,
           title: task.title,
           status: task.status,
           dueAt: task.dueAt,
-        },
-        usedFallback,
-        provider,
-        model,
-        hasLinkedAi,
-        availableModels: LLM_MODELS,
-      });
-    }
-
-    if (decision.action === "create_event" && decision.event) {
+        };
+      }
+    } else if (decision.action === "create_event" && decision.event) {
       const title = decision.event.title.trim();
       if (!title) {
-        return NextResponse.json(
-          {
-            action: "reply",
-            reply: "I need a valid event title before creating it.",
-            usedFallback,
-            provider,
-            model,
-            hasLinkedAi,
-            availableModels: LLM_MODELS,
+        responseAction = "reply";
+        responseReply = "I need a valid event title before creating it.";
+      } else {
+        const startAt = parseDate(decision.event.startAt) ?? new Date();
+        const requestedEndAt = parseDate(decision.event.endAt);
+        const endAt =
+          requestedEndAt && requestedEndAt > startAt
+            ? requestedEndAt
+            : new Date(startAt.getTime() + 60 * 60 * 1000);
+
+        const eventRecord = await prisma.event.create({
+          data: {
+            userId,
+            title,
+            startAt,
+            endAt,
+            notes: decision.event.notes?.trim() || null,
           },
-          { status: 200 },
-        );
-      }
+        });
 
-      const startAt = parseDate(decision.event.startAt) ?? new Date();
-      const requestedEndAt = parseDate(decision.event.endAt);
-      const endAt =
-        requestedEndAt && requestedEndAt > startAt
-          ? requestedEndAt
-          : new Date(startAt.getTime() + 60 * 60 * 1000);
-
-      const eventRecord = await prisma.event.create({
-        data: {
-          userId,
-          title,
-          startAt,
-          endAt,
-          notes: decision.event.notes?.trim() || null,
-        },
-      });
-
-      return NextResponse.json({
-        action: "create_event",
-        reply: decision.reply,
-        createdEvent: {
+        responseAction = "create_event";
+        responseCreatedEvent = {
           id: eventRecord.id,
           title: eventRecord.title,
           startAt: eventRecord.startAt,
           endAt: eventRecord.endAt,
-        },
-        usedFallback,
-        provider,
-        model,
-        hasLinkedAi,
-        availableModels: LLM_MODELS,
-      });
+        };
+      }
     }
 
+    const assistantMeta = buildMessageMetaFromDecision({
+      action: responseAction,
+      createdTask: responseCreatedTask,
+      createdEvent: responseCreatedEvent,
+    });
+
+    const assistantMessageRecord = await prisma.agentMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: responseReply,
+        action: responseAction,
+        meta: assistantMeta,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await prisma.agentConversation.update({
+      where: { id: conversation.id },
+      data: {
+        updatedAt: new Date(),
+      },
+    });
+
     return NextResponse.json({
-      action: "reply",
-      reply: decision.reply,
+      conversationId: conversation.id,
+      userMessageId: userMessageRecord.id,
+      assistantMessageId: assistantMessageRecord.id,
+      action: responseAction,
+      reply: responseReply,
+      createdTask: responseCreatedTask,
+      createdEvent: responseCreatedEvent,
       usedFallback,
       provider,
       model,

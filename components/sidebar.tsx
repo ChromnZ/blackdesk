@@ -1,30 +1,108 @@
 "use client";
 
-import { LogoutButton } from "@/components/logout-button";
-import { ThemeSelector } from "@/components/theme-selector";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { type ReactNode } from "react";
 
-const PRIMARY_NAV_ITEMS = [
-  { href: "/app", label: "Home" },
-  { href: "/app/agent", label: "AI Agent" },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+};
+
+const PRIMARY_NAV_ITEMS: NavItem[] = [
+  {
+    href: "/app",
+    label: "Home",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="m3 11.25 9-8.25 9 8.25v9.75a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-6v6H4.5A1.5 1.5 0 0 1 3 21Z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/app/agent",
+    label: "AI Agent",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3M12 18v3M4.22 6.22l2.12 2.12M17.66 17.66l2.12 2.12M3 12h3M18 12h3M4.22 17.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+        <circle cx="12" cy="12" r="4.5" />
+      </svg>
+    ),
+  },
 ];
 
-const SECONDARY_NAV_ITEMS = [
-  { href: "/app/calendar", label: "Calendar" },
-  { href: "/app/tasks", label: "Tasks" },
-  { href: "/app/news", label: "News" },
+const SECONDARY_NAV_ITEMS: NavItem[] = [
+  {
+    href: "/app/calendar",
+    label: "Calendar",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3v3M7.5 3v3M3.75 9.75h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v12A1.5 1.5 0 0 1 18.75 20.25H5.25a1.5 1.5 0 0 1-1.5-1.5v-12a1.5 1.5 0 0 1 1.5-1.5Z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/app/tasks",
+    label: "Tasks",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5h11.25M8.25 12h11.25M8.25 16.5h11.25M3.75 7.5h.008v.008H3.75Zm0 4.5h.008v.008H3.75Zm0 4.5h.008v.008H3.75Z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/app/news",
+    label: "News",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5h15v15h-15ZM8.25 8.25h7.5M8.25 12h7.5M8.25 15.75h4.5" />
+      </svg>
+    ),
+  },
 ];
 
 type SidebarProps = {
-  user: {
-    username: string;
-    email?: string;
-    image?: string | null;
-  };
   open: boolean;
+  collapsed: boolean;
   onClose: () => void;
+  onToggleCollapse: () => void;
 };
 
 function isActivePath(pathname: string, href: string) {
@@ -35,9 +113,43 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Sidebar({ user, open, onClose }: SidebarProps) {
+export function Sidebar({
+  open,
+  collapsed,
+  onClose,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
-  const isSettingsActive = isActivePath(pathname, "/app/settings");
+
+  function renderNavItem(item: NavItem) {
+    const isActive = isActivePath(pathname, item.href);
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        title={collapsed ? item.label : undefined}
+        onClick={onClose}
+        className={cn(
+          "group flex items-center rounded-md border text-sm transition",
+          collapsed ? "justify-center px-2 py-2.5" : "gap-2.5 px-3 py-2.5",
+          isActive
+            ? "border-accent/20 bg-accent/10 text-textMain"
+            : "border-transparent text-textMuted hover:border-border hover:bg-panelSoft hover:text-textMain",
+        )}
+      >
+        <span
+          className={cn(
+            "inline-flex h-5 w-5 items-center justify-center",
+            isActive ? "text-textMain" : "text-textMuted group-hover:text-textMain",
+          )}
+        >
+          {item.icon}
+        </span>
+        {!collapsed && <span>{item.label}</span>}
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -53,122 +165,55 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-border bg-panel px-4 pb-0 pt-6 transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0",
+          "fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-border bg-panel/95 px-3 pb-3 pt-5 backdrop-blur transition-transform duration-200 md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
+          collapsed ? "md:w-[76px] md:px-2" : "md:w-64 md:px-3",
         )}
       >
-        <div className="mb-8 px-2">
-          <p className="font-display text-xs uppercase tracking-[0.3em] text-textMuted">Workspace</p>
-          <p className="mt-2 font-display text-2xl font-semibold">BlackDesk</p>
+        <div className={cn("mb-6 px-1", collapsed ? "text-center" : "")}>
+          <p className={cn("font-display text-xs uppercase tracking-[0.25em] text-textMuted", collapsed ? "hidden" : "block")}>
+            Workspace
+          </p>
+          <p className="mt-2 font-display text-2xl font-semibold">{collapsed ? "B" : "BlackDesk"}</p>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto pb-4">
-          {PRIMARY_NAV_ITEMS.map((item) => {
-            const isActive = isActivePath(pathname, item.href);
+        <nav className="flex-1 space-y-1 overflow-y-auto">
+          {PRIMARY_NAV_ITEMS.map((item) => renderNavItem(item))}
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "block rounded-md border px-3 py-2.5 text-sm transition",
-                  isActive
-                    ? "border-accent/20 bg-accent/10 text-textMain"
-                    : "border-transparent text-textMuted hover:border-border hover:bg-panelSoft hover:text-textMain",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          <div className="my-2 h-px bg-border" />
 
-          <div className="my-3 h-px bg-border" />
-
-          {SECONDARY_NAV_ITEMS.map((item) => {
-            const isActive = isActivePath(pathname, item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "block rounded-md border px-3 py-2.5 text-sm transition",
-                  isActive
-                    ? "border-accent/20 bg-accent/10 text-textMain"
-                    : "border-transparent text-textMuted hover:border-border hover:bg-panelSoft hover:text-textMain",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {SECONDARY_NAV_ITEMS.map((item) => renderNavItem(item))}
         </nav>
 
-        <div className="mt-auto border-t border-border py-4">
-          <div className="mb-3">
-            <ThemeSelector compact />
-          </div>
-          <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-panelSoft px-3 py-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-panelSoft text-xs font-semibold text-textMain">
-                {user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.image}
-                    alt={`${user.username} profile picture`}
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  user.username.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">
-                  {user.username}
-                </p>
-                <p className="truncate text-[11px] text-textMuted">{user.email ?? "No email"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <LogoutButton
-                label="Logout"
-                className="rounded-md border border-accent/25 bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accentText transition hover:bg-accent/90"
-              />
-              <Link
-                href="/app/settings"
-                aria-label="Open settings"
-                onClick={onClose}
-                className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-md border transition",
-                  isSettingsActive
-                    ? "border-accent/20 bg-accent/10 text-textMain"
-                    : "border-border bg-panel text-textMuted hover:bg-panelSoft hover:text-textMain",
-                )}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10.325 4.317a1.724 1.724 0 0 1 3.35 0 1.724 1.724 0 0 0 2.573 1.066 1.724 1.724 0 0 1 2.494 2.494 1.724 1.724 0 0 0 1.066 2.573 1.724 1.724 0 0 1 0 3.35 1.724 1.724 0 0 0-1.066 2.573 1.724 1.724 0 0 1-2.494 2.494 1.724 1.724 0 0 0-2.573 1.066 1.724 1.724 0 0 1-3.35 0 1.724 1.724 0 0 0-2.573-1.066 1.724 1.724 0 0 1-2.494-2.494 1.724 1.724 0 0 0-1.066-2.573 1.724 1.724 0 0 1 0-3.35 1.724 1.724 0 0 0 1.066-2.573 1.724 1.724 0 0 1 2.494-2.494 1.724 1.724 0 0 0 2.573-1.066Z"
-                  />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
-                </svg>
-              </Link>
-            </div>
-          </div>
+        <div className="mt-auto pt-3">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={cn(
+              "hidden items-center rounded-md border border-border bg-panelSoft text-xs text-textMuted transition hover:bg-panel hover:text-textMain md:flex",
+              collapsed ? "justify-center px-2 py-2.5" : "gap-2 px-2.5 py-2",
+            )}
+            aria-label={collapsed ? "Expand panel" : "Hide panel"}
+            title={collapsed ? "Expand panel" : "Hide panel"}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              {collapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25 9 12l6.75 6.75" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 5.25 15 12l-6.75 6.75" />
+              )}
+            </svg>
+            {!collapsed && <span>Hide panel</span>}
+          </button>
         </div>
       </aside>
     </>
   );
 }
-

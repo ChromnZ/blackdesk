@@ -26,6 +26,7 @@ model User {
   tasks      Task[]
   inboxItems InboxItem[]
   llmSettings UserLlmSettings?
+  agentConversations AgentConversation[]
 }
 
 model Account {
@@ -119,5 +120,32 @@ model UserLlmSettings {
   updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AgentMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model AgentMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  action         String?
+  meta           String?
+  createdAt      DateTime @default(now())
+
+  conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
 

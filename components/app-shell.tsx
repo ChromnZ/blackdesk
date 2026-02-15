@@ -15,6 +15,7 @@ type AppShellProps = {
 
 export function AppShell({ children, user }: AppShellProps) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const closeOnResize = () => {
@@ -30,13 +31,17 @@ export function AppShell({ children, user }: AppShellProps) {
   return (
     <div className="min-h-screen bg-bg text-textMain md:flex">
       <Sidebar
-        user={user}
         open={isSidebarOpen}
+        collapsed={isSidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((current) => !current)}
       />
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <Topbar onMenuClick={() => setSidebarOpen((prev) => !prev)} />
+        <Topbar
+          user={user}
+          onMenuClick={() => setSidebarOpen((prev) => !prev)}
+        />
         <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>
