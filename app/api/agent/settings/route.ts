@@ -1,12 +1,13 @@
 import {
   LLM_MODELS,
+  buildAvailableModels,
   defaultModelForProvider,
+  getLinkedProviders,
   isLlmProvider,
-  isValidModelForProvider,
   type LlmProvider,
 } from "@/lib/llm-config";
 import { prisma } from "@/lib/prisma";
-import { canEncryptSecrets, encryptSecret } from "@/lib/secret";
+import { canEncryptSecrets, decryptSecret, encryptSecret } from "@/lib/secret";
 import { getAuthUserId } from "@/lib/session";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -24,6 +25,19 @@ const settingsUpdateSchema = z.object({
   clearGoogleApiKey: z.boolean().optional(),
 });
 
+function maskSecret(encrypted: string | null) {
+  if (!encrypted) {
+    return null;
+  }
+
+  const decrypted = decryptSecret(encrypted);
+  if (!decrypted) {
+    return "********";
+  }
+
+  return "*".repeat(decrypted.length);
+}
+
 function publicResponse(settings: {
   provider: string;
   model: string;
@@ -31,13 +45,36 @@ function publicResponse(settings: {
   anthropicApiKeyEnc: string | null;
   googleApiKeyEnc: string | null;
 }) {
+  const hasOpenaiApiKey = Boolean(settings.openaiApiKeyEnc);
+  const hasAnthropicApiKey = Boolean(settings.anthropicApiKeyEnc);
+  const hasGoogleApiKey = Boolean(settings.googleApiKeyEnc);
+  const availableModels = buildAvailableModels({
+    hasOpenaiApiKey,
+    hasAnthropicApiKey,
+    hasGoogleApiKey,
+  });
+  const linkedProviders = getLinkedProviders(availableModels);
+  const provider =
+    isLlmProvider(settings.provider) && linkedProviders.includes(settings.provider)
+      ? settings.provider
+      : linkedProviders[0] ?? "openai";
+  const availableModelsForProvider = linkedProviders.includes(provider)
+    ? availableModels[provider]
+    : [];
+  const model = availableModelsForProvider.includes(settings.model)
+    ? settings.model
+    : availableModelsForProvider[0] ?? "";
+
   return {
-    provider: settings.provider,
-    model: settings.model,
-    hasOpenaiApiKey: Boolean(settings.openaiApiKeyEnc),
-    hasAnthropicApiKey: Boolean(settings.anthropicApiKeyEnc),
-    hasGoogleApiKey: Boolean(settings.googleApiKeyEnc),
-    availableModels: LLM_MODELS,
+    provider,
+    model,
+    hasOpenaiApiKey,
+    hasAnthropicApiKey,
+    hasGoogleApiKey,
+    openaiApiKeyMask: maskSecret(settings.openaiApiKeyEnc),
+    anthropicApiKeyMask: maskSecret(settings.anthropicApiKeyEnc),
+    googleApiKeyMask: maskSecret(settings.googleApiKeyEnc),
+    availableModels,
   };
 }
 
@@ -62,7 +99,7 @@ export async function GET() {
     return NextResponse.json(
       publicResponse({
         provider: "openai",
-        model: defaultModelForProvider("openai"),
+        model: "",
         openaiApiKeyEnc: null,
         anthropicApiKeyEnc: null,
         googleApiKeyEnc: null,
@@ -93,21 +130,61 @@ export async function PATCH(request: Request) {
       select: {
         provider: true,
         model: true,
+        openaiApiKeyEnc: true,
+        anthropicApiKeyEnc: true,
+        googleApiKeyEnc: true,
       },
     })) ?? {
       provider: "openai",
       model: defaultModelForProvider("openai"),
+      openaiApiKeyEnc: null,
+      anthropicApiKeyEnc: null,
+      googleApiKeyEnc: null,
     };
 
-  const nextProvider = payload.data.provider ?? current.provider;
-  if (!isLlmProvider(nextProvider)) {
-    return NextResponse.json({ error: "Invalid provider." }, { status: 400 });
-  }
+  const hasOpenaiApiKey = payload.data.clearOpenaiApiKey
+    ? false
+    : payload.data.openaiApiKey
+      ? true
+      : Boolean(current.openaiApiKeyEnc);
+  const hasAnthropicApiKey = payload.data.clearAnthropicApiKey
+    ? false
+    : payload.data.anthropicApiKey
+      ? true
+      : Boolean(current.anthropicApiKeyEnc);
+  const hasGoogleApiKey = payload.data.clearGoogleApiKey
+    ? false
+    : payload.data.googleApiKey
+      ? true
+      : Boolean(current.googleApiKeyEnc);
 
-  const requestedModel = payload.data.model ?? current.model;
-  const nextModel = isValidModelForProvider(nextProvider, requestedModel)
+  const availableModels = buildAvailableModels({
+    hasOpenaiApiKey,
+    hasAnthropicApiKey,
+    hasGoogleApiKey,
+  });
+  const linkedProviders = getLinkedProviders(availableModels);
+
+  const currentProvider = isLlmProvider(current.provider)
+    ? current.provider
+    : "openai";
+  const requestedProvider = payload.data.provider ?? currentProvider;
+  const nextProvider =
+    linkedProviders.length === 0
+      ? requestedProvider
+      : linkedProviders.includes(requestedProvider)
+        ? requestedProvider
+        : linkedProviders[0];
+
+  const requestedModel =
+    payload.data.model ??
+    (nextProvider === currentProvider ? current.model : defaultModelForProvider(nextProvider));
+  const nextProviderModels = linkedProviders.includes(nextProvider)
+    ? availableModels[nextProvider]
+    : [];
+  const nextModel = nextProviderModels.includes(requestedModel)
     ? requestedModel
-    : defaultModelForProvider(nextProvider);
+    : nextProviderModels[0] ?? "";
 
   const needsEncryption =
     Boolean(payload.data.openaiApiKey) ||

@@ -1,8 +1,8 @@
 import {
-  LLM_MODELS,
+  buildAvailableModels,
   defaultModelForProvider,
+  getLinkedProviders,
   isLlmProvider,
-  isValidModelForProvider,
   type LlmProvider,
 } from "@/lib/llm-config";
 import { prisma } from "@/lib/prisma";
@@ -377,6 +377,74 @@ export async function POST(request: Request) {
     const requestedConversationId = parsedRequest.data.conversationId ?? null;
     const requestProvider = parsedRequest.data.provider;
     const requestModel = parsedRequest.data.model;
+    const userSettings = await prisma.userLlmSettings.findUnique({
+      where: { userId },
+      select: {
+        provider: true,
+        model: true,
+        openaiApiKeyEnc: true,
+        anthropicApiKeyEnc: true,
+        googleApiKeyEnc: true,
+      },
+    });
+
+    const openaiUserKey = decryptSecret(userSettings?.openaiApiKeyEnc);
+    const anthropicUserKey = decryptSecret(userSettings?.anthropicApiKeyEnc);
+    const googleUserKey = decryptSecret(userSettings?.googleApiKeyEnc);
+
+    const availableModels = buildAvailableModels({
+      hasOpenaiApiKey: Boolean(openaiUserKey),
+      hasAnthropicApiKey: Boolean(anthropicUserKey),
+      hasGoogleApiKey: Boolean(googleUserKey),
+    });
+    const linkedProviders = getLinkedProviders(availableModels);
+    const hasLinkedAi = linkedProviders.length > 0;
+
+    if (!hasLinkedAi) {
+      return NextResponse.json(
+        {
+          error: "No AI provider is linked. Add an API key in Settings.",
+          hasLinkedAi: false,
+          availableModels,
+        },
+        { status: 400 },
+      );
+    }
+
+    const persistedProvider: LlmProvider =
+      userSettings &&
+      isLlmProvider(userSettings.provider) &&
+      linkedProviders.includes(userSettings.provider)
+        ? userSettings.provider
+        : linkedProviders[0];
+
+    const requestedProvider =
+      requestProvider &&
+      isLlmProvider(requestProvider) &&
+      linkedProviders.includes(requestProvider)
+        ? requestProvider
+        : null;
+    const provider = requestedProvider ?? persistedProvider;
+    const allowedModelsForProvider = availableModels[provider];
+    const defaultAllowedModel =
+      allowedModelsForProvider[0] ?? defaultModelForProvider(provider);
+    const persistedModel =
+      userSettings?.model && allowedModelsForProvider.includes(userSettings.model)
+        ? userSettings.model
+        : defaultAllowedModel;
+    const model =
+      requestModel && allowedModelsForProvider.includes(requestModel)
+        ? requestModel
+        : provider === persistedProvider
+          ? persistedModel
+          : defaultAllowedModel;
+
+    const apiKey =
+      provider === "openai"
+        ? openaiUserKey
+        : provider === "anthropic"
+          ? anthropicUserKey
+          : googleUserKey;
 
     let conversation = requestedConversationId
       ? await prisma.agentConversation.findFirst({
@@ -440,56 +508,6 @@ export async function POST(request: Request) {
         id: true,
       },
     });
-
-    const userSettings = await prisma.userLlmSettings.findUnique({
-      where: { userId },
-      select: {
-        provider: true,
-        model: true,
-        openaiApiKeyEnc: true,
-        anthropicApiKeyEnc: true,
-        googleApiKeyEnc: true,
-      },
-    });
-
-    const persistedProvider: LlmProvider =
-      userSettings && isLlmProvider(userSettings.provider)
-        ? userSettings.provider
-        : "openai";
-
-    const requestedProvider =
-      requestProvider && isLlmProvider(requestProvider) ? requestProvider : null;
-    const provider = requestedProvider ?? persistedProvider;
-
-    const persistedModel =
-      userSettings?.model &&
-      isValidModelForProvider(persistedProvider, userSettings.model)
-        ? userSettings.model
-        : defaultModelForProvider(persistedProvider);
-
-    const model =
-      requestModel && isValidModelForProvider(provider, requestModel)
-        ? requestModel
-        : provider === persistedProvider
-          ? persistedModel
-          : defaultModelForProvider(provider);
-
-    const openaiUserKey = decryptSecret(userSettings?.openaiApiKeyEnc);
-    const anthropicUserKey = decryptSecret(userSettings?.anthropicApiKeyEnc);
-    const googleUserKey = decryptSecret(userSettings?.googleApiKeyEnc);
-
-    const apiKey =
-      provider === "openai"
-        ? openaiUserKey ?? process.env.OPENAI_API_KEY ?? null
-        : provider === "anthropic"
-          ? anthropicUserKey ?? process.env.ANTHROPIC_API_KEY ?? null
-          : googleUserKey ?? process.env.GOOGLE_API_KEY ?? null;
-
-    const linkedProviderCount =
-      Number(Boolean(openaiUserKey)) +
-      Number(Boolean(anthropicUserKey)) +
-      Number(Boolean(googleUserKey));
-    const hasLinkedAi = linkedProviderCount > 0;
 
     let decision = await requestDecisionByProvider({
       provider,
@@ -622,7 +640,7 @@ export async function POST(request: Request) {
       provider,
       model,
       hasLinkedAi,
-      availableModels: LLM_MODELS,
+      availableModels,
     });
   } catch {
     return NextResponse.json(

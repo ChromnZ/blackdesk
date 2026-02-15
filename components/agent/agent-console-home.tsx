@@ -3,10 +3,8 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Modal } from "@/components/console/Modal";
 import {
-  LLM_MODELS,
-  defaultModelForProvider,
   isLlmProvider,
-  isValidModelForProvider,
+  type AvailableLlmModels,
   type LlmProvider,
 } from "@/lib/llm-config";
 import { cn } from "@/lib/utils";
@@ -40,14 +38,14 @@ type AgentSettingsResponse = {
   hasOpenaiApiKey: boolean;
   hasAnthropicApiKey: boolean;
   hasGoogleApiKey: boolean;
-  availableModels: typeof LLM_MODELS;
+  availableModels: AvailableLlmModels;
   error?: string;
 };
 
 type AgentConfig = {
   provider: LlmProvider;
   model: string;
-  availableModels: typeof LLM_MODELS;
+  availableModels: AvailableLlmModels;
   hasOpenaiApiKey: boolean;
   hasAnthropicApiKey: boolean;
   hasGoogleApiKey: boolean;
@@ -85,17 +83,9 @@ function getLinkedProviders(config: AgentConfig | null) {
     return [] as LlmProvider[];
   }
 
-  const linked: LlmProvider[] = [];
-  if (config.hasOpenaiApiKey) {
-    linked.push("openai");
-  }
-  if (config.hasAnthropicApiKey) {
-    linked.push("anthropic");
-  }
-  if (config.hasGoogleApiKey) {
-    linked.push("google");
-  }
-  return linked;
+  return (Object.keys(config.availableModels) as LlmProvider[]).filter(
+    (provider) => config.availableModels[provider].length > 0,
+  );
 }
 
 export function AgentConsoleHome() {
@@ -133,10 +123,16 @@ export function AgentConsoleHome() {
           return;
         }
 
-        const provider = payload.provider;
-        const model = isValidModelForProvider(provider, payload.model)
+        const linkedProviders = (Object.keys(payload.availableModels) as LlmProvider[]).filter(
+          (provider) => payload.availableModels[provider].length > 0,
+        );
+        const provider = linkedProviders.includes(payload.provider)
+          ? payload.provider
+          : linkedProviders[0] ?? "openai";
+        const allowedModelsForProvider = payload.availableModels[provider];
+        const model = allowedModelsForProvider.includes(payload.model)
           ? payload.model
-          : defaultModelForProvider(provider);
+          : allowedModelsForProvider[0] ?? "";
 
         setConfig({
           provider,
@@ -175,10 +171,16 @@ export function AgentConsoleHome() {
         return;
       }
 
-      const nextProvider = payload.provider;
-      const nextModel = isValidModelForProvider(nextProvider, payload.model)
+      const linkedProviders = (Object.keys(payload.availableModels) as LlmProvider[]).filter(
+        (provider) => payload.availableModels[provider].length > 0,
+      );
+      const nextProvider = linkedProviders.includes(payload.provider)
+        ? payload.provider
+        : linkedProviders[0] ?? "openai";
+      const allowedModelsForProvider = payload.availableModels[nextProvider];
+      const nextModel = allowedModelsForProvider.includes(payload.model)
         ? payload.model
-        : defaultModelForProvider(nextProvider);
+        : allowedModelsForProvider[0] ?? "";
 
       setConfig({
         provider: nextProvider,
@@ -200,9 +202,14 @@ export function AgentConsoleHome() {
       return;
     }
 
-    const nextModel = isValidModelForProvider(nextProvider, config.model)
+    const nextProviderModels = config.availableModels[nextProvider];
+    if (nextProviderModels.length === 0) {
+      return;
+    }
+
+    const nextModel = nextProviderModels.includes(config.model)
       ? config.model
-      : defaultModelForProvider(nextProvider);
+      : nextProviderModels[0];
 
     setConfig((current) =>
       current
@@ -222,7 +229,7 @@ export function AgentConsoleHome() {
       return;
     }
 
-    if (!isValidModelForProvider(config.provider, nextModel)) {
+    if (!config.availableModels[config.provider].includes(nextModel)) {
       return;
     }
 
@@ -264,7 +271,7 @@ export function AgentConsoleHome() {
     }
 
     const nextProvider = linkedProviders[0];
-    const nextModel = defaultModelForProvider(nextProvider);
+    const nextModel = config.availableModels[nextProvider][0] ?? "";
 
     setConfig((current) =>
       current

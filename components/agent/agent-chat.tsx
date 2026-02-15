@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  LLM_MODELS,
-  defaultModelForProvider,
   isLlmProvider,
-  isValidModelForProvider,
+  type AvailableLlmModels,
   type LlmProvider,
 } from "@/lib/llm-config";
 import { cn } from "@/lib/utils";
@@ -62,7 +60,7 @@ type AgentResponse = {
   provider?: string;
   model?: string;
   hasLinkedAi?: boolean;
-  availableModels?: typeof LLM_MODELS;
+  availableModels?: AvailableLlmModels;
   createdTask?: {
     id: string;
     title: string;
@@ -85,14 +83,14 @@ type AgentSettingsResponse = {
   hasOpenaiApiKey: boolean;
   hasAnthropicApiKey: boolean;
   hasGoogleApiKey: boolean;
-  availableModels: typeof LLM_MODELS;
+  availableModels: AvailableLlmModels;
   error?: string;
 };
 
 type AgentConfig = {
   provider: LlmProvider;
   model: string;
-  availableModels: typeof LLM_MODELS;
+  availableModels: AvailableLlmModels;
   hasOpenaiApiKey: boolean;
   hasAnthropicApiKey: boolean;
   hasGoogleApiKey: boolean;
@@ -109,6 +107,33 @@ const PROVIDER_LABELS: Record<LlmProvider, string> = {
   anthropic: "Claude (Anthropic)",
   google: "Google (Gemini)",
 };
+
+function getLinkedProvidersFromAvailableModels(availableModels: AvailableLlmModels) {
+  return (Object.keys(availableModels) as LlmProvider[]).filter(
+    (provider) => availableModels[provider].length > 0,
+  );
+}
+
+function resolveProviderAndModelSelection(args: {
+  availableModels: AvailableLlmModels;
+  provider?: string | null;
+  model?: string | null;
+}) {
+  const linkedProviders = getLinkedProvidersFromAvailableModels(args.availableModels);
+  const provider =
+    args.provider &&
+    isLlmProvider(args.provider) &&
+    linkedProviders.includes(args.provider)
+      ? args.provider
+      : linkedProviders[0] ?? "openai";
+  const providerModels = args.availableModels[provider];
+  const model =
+    args.model && providerModels.includes(args.model)
+      ? args.model
+      : providerModels[0] ?? "";
+
+  return { provider, model, linkedProviders };
+}
 
 type RecognitionAlternativeLike = {
   transcript: string;
@@ -284,15 +309,16 @@ export function AgentChat() {
       const response = await fetch("/api/agent/settings", { cache: "no-store" });
       const payload = (await response.json()) as AgentSettingsResponse;
 
-      if (!response.ok || !isLlmProvider(payload.provider)) {
+      if (!response.ok) {
         setError(payload.error ?? "Unable to load AI agent model settings.");
         return;
       }
 
-      const provider = payload.provider;
-      const model = isValidModelForProvider(provider, payload.model)
-        ? payload.model
-        : defaultModelForProvider(provider);
+      const { provider, model } = resolveProviderAndModelSelection({
+        availableModels: payload.availableModels,
+        provider: payload.provider,
+        model: payload.model,
+      });
 
       setConfig({
         provider,
@@ -398,9 +424,18 @@ export function AgentChat() {
     [messages],
   );
 
-  const hasLinkedAi = Boolean(
-    config?.hasOpenaiApiKey || config?.hasAnthropicApiKey || config?.hasGoogleApiKey,
+  const linkedProviders = useMemo(
+    () =>
+      config ? getLinkedProvidersFromAvailableModels(config.availableModels) : [],
+    [config],
   );
+  const hasLinkedAi = linkedProviders.length > 0;
+  const modelOptions = useMemo(() => {
+    if (!config || !linkedProviders.includes(config.provider)) {
+      return [];
+    }
+    return config.availableModels[config.provider];
+  }, [config, linkedProviders]);
 
   const filteredConversations = useMemo(() => {
     const query = conversationQuery.trim().toLowerCase();
@@ -442,15 +477,17 @@ export function AgentChat() {
 
       const payload = (await response.json()) as AgentSettingsResponse;
 
-      if (!response.ok || !isLlmProvider(payload.provider)) {
+      if (!response.ok) {
         setError(payload.error ?? "Unable to switch model.");
         return;
       }
 
-      const nextProvider = payload.provider;
-      const nextModel = isValidModelForProvider(nextProvider, payload.model)
-        ? payload.model
-        : defaultModelForProvider(nextProvider);
+      const { provider: nextProvider, model: nextModel } =
+        resolveProviderAndModelSelection({
+          availableModels: payload.availableModels,
+          provider: payload.provider,
+          model: payload.model,
+        });
 
       setConfig({
         provider: nextProvider,
@@ -468,13 +505,14 @@ export function AgentChat() {
   }
 
   function handleProviderChange(nextValue: string) {
-    if (!config || !isLlmProvider(nextValue)) {
+    if (!config || !isLlmProvider(nextValue) || !linkedProviders.includes(nextValue)) {
       return;
     }
 
-    const nextModel = isValidModelForProvider(nextValue, config.model)
+    const nextProviderModels = config.availableModels[nextValue];
+    const nextModel = nextProviderModels.includes(config.model)
       ? config.model
-      : defaultModelForProvider(nextValue);
+      : nextProviderModels[0] ?? "";
 
     setConfig((current) =>
       current
@@ -489,7 +527,7 @@ export function AgentChat() {
   }
 
   function handleModelChange(nextModel: string) {
-    if (!config || !isValidModelForProvider(config.provider, nextModel)) {
+    if (!config || !config.availableModels[config.provider].includes(nextModel)) {
       return;
     }
 
@@ -665,21 +703,22 @@ export function AgentChat() {
         ];
       });
 
-      if (
-        payload.provider &&
-        payload.model &&
-        isLlmProvider(payload.provider) &&
-        isValidModelForProvider(payload.provider, payload.model)
-      ) {
-        setConfig((current) =>
-          current
-            ? {
-                ...current,
-                provider: payload.provider as LlmProvider,
-                model: payload.model as string,
-              }
-            : current,
-        );
+      if (payload.availableModels) {
+        const { provider: nextProvider, model: nextModel } =
+          resolveProviderAndModelSelection({
+            availableModels: payload.availableModels,
+            provider: payload.provider,
+            model: payload.model,
+          });
+
+        setConfig({
+          provider: nextProvider,
+          model: nextModel,
+          availableModels: payload.availableModels,
+          hasOpenaiApiKey: payload.availableModels.openai.length > 0,
+          hasAnthropicApiKey: payload.availableModels.anthropic.length > 0,
+          hasGoogleApiKey: payload.availableModels.google.length > 0,
+        });
       }
 
       await loadConversationById(conversationId);
@@ -1031,30 +1070,39 @@ export function AgentChat() {
               <select
                 id="agent-provider"
                 value={config?.provider ?? "openai"}
-                disabled={isLoadingConfig || isSwitchingModel || !config}
+                disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
                 onChange={(event) => handleProviderChange(event.target.value)}
                 className="min-w-[130px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
                 aria-label="LLM provider"
               >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Claude</option>
-                <option value="google">Gemini</option>
+                {linkedProviders.length === 0 ? (
+                  <option value={config?.provider ?? "openai"}>No linked provider</option>
+                ) : (
+                  linkedProviders.map((provider) => (
+                    <option key={provider} value={provider}>
+                      {PROVIDER_LABELS[provider]}
+                    </option>
+                  ))
+                )}
               </select>
 
               <select
                 id="agent-model"
                 value={config?.model ?? ""}
-                disabled={isLoadingConfig || isSwitchingModel || !config}
+                disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
                 onChange={(event) => handleModelChange(event.target.value)}
                 className="min-w-[160px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
                 aria-label="LLM model"
               >
-                {config &&
-                  config.availableModels[config.provider].map((option) => (
+                {modelOptions.length === 0 ? (
+                  <option value="">No models available</option>
+                ) : (
+                  modelOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
-                  ))}
+                  ))
+                )}
               </select>
 
               <div className="relative ml-auto" ref={composerSettingsRef}>

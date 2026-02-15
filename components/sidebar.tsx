@@ -196,8 +196,13 @@ export function Sidebar({
           collapsed ? "md:w-[76px] md:px-2" : "md:w-64 md:px-3",
         )}
       >
-        <div className={cn("mb-6 px-1", collapsed ? "text-center" : "")}>
-          <p className="font-display text-2xl font-semibold">{collapsed ? "B" : "BlackDesk"}</p>
+        <div
+          className={cn(
+            "mb-6",
+            collapsed ? "flex justify-center px-0 text-center" : "px-1",
+          )}
+        >
+          <p className="font-display text-2xl font-semibold">{collapsed ? "BD" : "BlackDesk"}</p>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto">
@@ -208,7 +213,7 @@ export function Sidebar({
           {SECONDARY_NAV_ITEMS.map((item) => renderNavItem(item))}
         </nav>
 
-        <div className="mt-auto pt-3">
+        <div className={cn("mt-auto pt-3", collapsed ? "flex justify-center" : "")}>
           <button
             type="button"
             onClick={onToggleCollapse}
