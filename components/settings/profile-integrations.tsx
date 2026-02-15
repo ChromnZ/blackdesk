@@ -1,6 +1,12 @@
 "use client";
 
 import { initialsFromName } from "@/lib/name-utils";
+import {
+  MAX_PROFILE_IMAGE_DIMENSION,
+  MAX_PROFILE_IMAGE_FILE_BYTES,
+  validateProfileImageDataUrl,
+  validateProfileImageDimensions,
+} from "@/lib/profile-image";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -12,8 +18,6 @@ type ProfileSettingsPayload = {
   image: string | null;
   googleLinked: boolean;
 };
-
-const MAX_AVATAR_FILE_BYTES = 1_500_000;
 
 export function ProfileIntegrations() {
   const searchParams = useSearchParams();
@@ -94,15 +98,27 @@ export function ProfileIntegrations() {
       return;
     }
 
-    if (selectedFile.size > MAX_AVATAR_FILE_BYTES) {
-      setError("Image is too large. Use an image smaller than 1.5MB.");
+    if (selectedFile.size > MAX_PROFILE_IMAGE_FILE_BYTES) {
+      setError("Image is too large. Use an image smaller than 750KB.");
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       if (typeof reader.result !== "string") {
         setError("Unable to read image file.");
+        return;
+      }
+
+      const dimensionError = await validateProfileImageDimensions(reader.result);
+      if (dimensionError) {
+        setError(dimensionError);
+        return;
+      }
+
+      const imageError = validateProfileImageDataUrl(reader.result);
+      if (imageError) {
+        setError(imageError);
         return;
       }
 
@@ -268,6 +284,9 @@ export function ProfileIntegrations() {
             )}
           </div>
         </div>
+        <p className="mt-2 text-xs text-textMuted">
+          Max 750KB upload, max {MAX_PROFILE_IMAGE_DIMENSION}x{MAX_PROFILE_IMAGE_DIMENSION}px.
+        </p>
       </div>
 
       <form className="space-y-3" onSubmit={handleSaveProfile}>

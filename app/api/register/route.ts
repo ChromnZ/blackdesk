@@ -1,12 +1,13 @@
 import bcrypt from "bcryptjs";
 import { generateInternalUsername } from "@/lib/internal-username";
 import { formatDisplayName } from "@/lib/name-utils";
+import {
+  MAX_PROFILE_IMAGE_DATA_URL_LENGTH,
+  validateProfileImageDataUrl,
+} from "@/lib/profile-image";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
-const IMAGE_DATA_URL_REGEX =
-  /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i;
 
 const registerSchema = z
   .object({
@@ -15,10 +16,7 @@ const registerSchema = z
     email: z.string().trim().toLowerCase().email("A valid email is required."),
     image: z
       .string()
-      .max(3_000_000, "Profile image is too large.")
-      .refine((value) => IMAGE_DATA_URL_REGEX.test(value), {
-        message: "Invalid image format. Use PNG, JPG, WEBP, or GIF.",
-      })
+      .max(MAX_PROFILE_IMAGE_DATA_URL_LENGTH, "Profile image is too large.")
       .optional(),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
@@ -41,6 +39,13 @@ export async function POST(request: Request) {
     }
 
     const { firstName, lastName, email, image, password } = payload.data;
+
+    if (image) {
+      const imageError = validateProfileImageDataUrl(image);
+      if (imageError) {
+        return NextResponse.json({ error: imageError }, { status: 400 });
+      }
+    }
 
     const existingEmail = await prisma.user.findUnique({
       where: { email },

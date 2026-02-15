@@ -1,12 +1,13 @@
 import { authOptions } from "@/lib/auth";
 import { formatDisplayName } from "@/lib/name-utils";
+import {
+  MAX_PROFILE_IMAGE_DATA_URL_LENGTH,
+  validateProfileImageDataUrl,
+} from "@/lib/profile-image";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
-const IMAGE_DATA_URL_REGEX =
-  /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i;
 
 const updateProfileSchema = z
   .object({
@@ -20,10 +21,7 @@ const updateProfileSchema = z
       .optional(),
     image: z
       .string()
-      .max(3_000_000, "Profile image is too large.")
-      .refine((value) => IMAGE_DATA_URL_REGEX.test(value), {
-        message: "Invalid image format. Use PNG, JPG, WEBP, or GIF.",
-      })
+      .max(MAX_PROFILE_IMAGE_DATA_URL_LENGTH, "Profile image is too large.")
       .optional(),
     removeImage: z.boolean().optional(),
   })
@@ -119,6 +117,13 @@ export async function PATCH(request: Request) {
         { error: "Email is already in use." },
         { status: 409 },
       );
+    }
+  }
+
+  if (payload.data.image) {
+    const imageError = validateProfileImageDataUrl(payload.data.image);
+    if (imageError) {
+      return NextResponse.json({ error: imageError }, { status: 400 });
     }
   }
 

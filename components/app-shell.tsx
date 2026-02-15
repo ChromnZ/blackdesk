@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type AppShellProps = {
@@ -15,8 +16,11 @@ type AppShellProps = {
 };
 
 export function AppShell({ children, user }: AppShellProps) {
+  const pathname = usePathname();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isConsoleRoute =
+    pathname === "/app/agent" || pathname.startsWith("/app/agent/");
 
   useEffect(() => {
     const closeOnResize = () => {
@@ -28,6 +32,10 @@ export function AppShell({ children, user }: AppShellProps) {
     window.addEventListener("resize", closeOnResize);
     return () => window.removeEventListener("resize", closeOnResize);
   }, []);
+
+  if (isConsoleRoute) {
+    return <div className="min-h-screen bg-[#070708] text-zinc-100">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-bg text-textMain md:flex">
