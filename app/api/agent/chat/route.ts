@@ -1,10 +1,10 @@
 import {
-  buildAvailableModels,
   defaultModelForProvider,
   getLinkedProviders,
   isLlmProvider,
   type LlmProvider,
 } from "@/lib/llm-config";
+import { discoverAvailableModels } from "@/lib/llm-model-discovery";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/secret";
 import { getAuthUserId } from "@/lib/session";
@@ -392,10 +392,10 @@ export async function POST(request: Request) {
     const anthropicUserKey = decryptSecret(userSettings?.anthropicApiKeyEnc);
     const googleUserKey = decryptSecret(userSettings?.googleApiKeyEnc);
 
-    const availableModels = buildAvailableModels({
-      hasOpenaiApiKey: Boolean(openaiUserKey),
-      hasAnthropicApiKey: Boolean(anthropicUserKey),
-      hasGoogleApiKey: Boolean(googleUserKey),
+    const availableModels = await discoverAvailableModels({
+      openaiApiKey: openaiUserKey,
+      anthropicApiKey: anthropicUserKey,
+      googleApiKey: googleUserKey,
     });
     const linkedProviders = getLinkedProviders(availableModels);
     const hasLinkedAi = linkedProviders.length > 0;

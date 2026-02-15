@@ -6,7 +6,6 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   LayoutGrid,
   LogOut,
-  Monitor,
   Moon,
   Settings,
   Sun,
@@ -25,14 +24,13 @@ type UserMenuProps = {
   };
 };
 
-type ThemeValue = "light" | "dark" | "system";
+type ThemeValue = "light" | "dark";
 
 const THEME_OPTIONS: Array<{
   value: ThemeValue;
   label: string;
   icon: ReactNode;
 }> = [
-  { value: "system", label: "System", icon: <Monitor className="h-3.5 w-3.5" /> },
   { value: "light", label: "Light", icon: <Sun className="h-3.5 w-3.5" /> },
   { value: "dark", label: "Dark", icon: <Moon className="h-3.5 w-3.5" /> },
 ];
@@ -60,7 +58,7 @@ function ItemRow({
 }
 
 export function UserMenu({ user }: UserMenuProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -71,6 +69,13 @@ export function UserMenu({ user }: UserMenuProps) {
     () => formatDisplayName(user.firstName, user.lastName, user.email ?? null),
     [user.email, user.firstName, user.lastName],
   );
+  const activeTheme: ThemeValue = mounted
+    ? theme === "light" || theme === "dark"
+      ? theme
+      : resolvedTheme === "light"
+        ? "light"
+        : "dark"
+    : "dark";
 
   return (
     <DropdownMenu.Root>
@@ -126,7 +131,7 @@ export function UserMenu({ user }: UserMenuProps) {
             <span className="text-sm text-zinc-300">Theme</span>
             <div className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900/70 p-1">
               {THEME_OPTIONS.map((option) => {
-                const isActive = mounted && theme === option.value;
+                const isActive = activeTheme === option.value;
                 return (
                   <button
                     key={option.value}

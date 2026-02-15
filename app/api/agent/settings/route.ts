@@ -1,11 +1,12 @@
 import {
   LLM_MODELS,
-  buildAvailableModels,
   defaultModelForProvider,
   getLinkedProviders,
   isLlmProvider,
+  type AvailableLlmModels,
   type LlmProvider,
 } from "@/lib/llm-config";
+import { discoverAvailableModels } from "@/lib/llm-model-discovery";
 import { prisma } from "@/lib/prisma";
 import { canEncryptSecrets, decryptSecret, encryptSecret } from "@/lib/secret";
 import { getAuthUserId } from "@/lib/session";
@@ -38,21 +39,17 @@ function maskSecret(encrypted: string | null) {
   return "*".repeat(decrypted.length);
 }
 
-function publicResponse(settings: {
-  provider: string;
-  model: string;
-  openaiApiKeyEnc: string | null;
-  anthropicApiKeyEnc: string | null;
-  googleApiKeyEnc: string | null;
+function toPublicResponse(args: {
+  settings: {
+    provider: string;
+    model: string;
+    openaiApiKeyEnc: string | null;
+    anthropicApiKeyEnc: string | null;
+    googleApiKeyEnc: string | null;
+  };
+  availableModels: AvailableLlmModels;
 }) {
-  const hasOpenaiApiKey = Boolean(settings.openaiApiKeyEnc);
-  const hasAnthropicApiKey = Boolean(settings.anthropicApiKeyEnc);
-  const hasGoogleApiKey = Boolean(settings.googleApiKeyEnc);
-  const availableModels = buildAvailableModels({
-    hasOpenaiApiKey,
-    hasAnthropicApiKey,
-    hasGoogleApiKey,
-  });
+  const { settings, availableModels } = args;
   const linkedProviders = getLinkedProviders(availableModels);
   const provider =
     isLlmProvider(settings.provider) && linkedProviders.includes(settings.provider)
@@ -64,6 +61,9 @@ function publicResponse(settings: {
   const model = availableModelsForProvider.includes(settings.model)
     ? settings.model
     : availableModelsForProvider[0] ?? "";
+  const hasOpenaiApiKey = Boolean(settings.openaiApiKeyEnc);
+  const hasAnthropicApiKey = Boolean(settings.anthropicApiKeyEnc);
+  const hasGoogleApiKey = Boolean(settings.googleApiKeyEnc);
 
   return {
     provider,
@@ -76,6 +76,22 @@ function publicResponse(settings: {
     googleApiKeyMask: maskSecret(settings.googleApiKeyEnc),
     availableModels,
   };
+}
+
+async function publicResponse(settings: {
+  provider: string;
+  model: string;
+  openaiApiKeyEnc: string | null;
+  anthropicApiKeyEnc: string | null;
+  googleApiKeyEnc: string | null;
+}) {
+  const availableModels = await discoverAvailableModels({
+    openaiApiKey: decryptSecret(settings.openaiApiKeyEnc),
+    anthropicApiKey: decryptSecret(settings.anthropicApiKeyEnc),
+    googleApiKey: decryptSecret(settings.googleApiKeyEnc),
+  });
+
+  return toPublicResponse({ settings, availableModels });
 }
 
 export async function GET() {
@@ -97,7 +113,7 @@ export async function GET() {
 
   if (!settings) {
     return NextResponse.json(
-      publicResponse({
+      await publicResponse({
         provider: "openai",
         model: "",
         openaiApiKeyEnc: null,
@@ -107,7 +123,7 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json(publicResponse(settings));
+  return NextResponse.json(await publicResponse(settings));
 }
 
 export async function PATCH(request: Request) {
@@ -158,10 +174,20 @@ export async function PATCH(request: Request) {
       ? true
       : Boolean(current.googleApiKeyEnc);
 
-  const availableModels = buildAvailableModels({
-    hasOpenaiApiKey,
-    hasAnthropicApiKey,
-    hasGoogleApiKey,
+  const nextOpenaiApiKey = hasOpenaiApiKey
+    ? payload.data.openaiApiKey?.trim() || decryptSecret(current.openaiApiKeyEnc)
+    : null;
+  const nextAnthropicApiKey = hasAnthropicApiKey
+    ? payload.data.anthropicApiKey?.trim() || decryptSecret(current.anthropicApiKeyEnc)
+    : null;
+  const nextGoogleApiKey = hasGoogleApiKey
+    ? payload.data.googleApiKey?.trim() || decryptSecret(current.googleApiKeyEnc)
+    : null;
+
+  const availableModels = await discoverAvailableModels({
+    openaiApiKey: nextOpenaiApiKey,
+    anthropicApiKey: nextAnthropicApiKey,
+    googleApiKey: nextGoogleApiKey,
   });
   const linkedProviders = getLinkedProviders(availableModels);
 
@@ -245,5 +271,10 @@ export async function PATCH(request: Request) {
     },
   });
 
-  return NextResponse.json(publicResponse(updated));
+  return NextResponse.json(
+    toPublicResponse({
+      settings: updated,
+      availableModels,
+    }),
+  );
 }

@@ -15,7 +15,9 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Appearance</CardTitle>
-          <CardDescription>Switch between light, dark, or system theme.</CardDescription>
+          <CardDescription>
+            Default follows your system theme until you choose light or dark.
+          </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           <ThemeSelector />

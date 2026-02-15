@@ -43,6 +43,11 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: <Bot className="h-4 w-4" />,
         href: "/app/agent",
       },
+    ],
+  },
+  {
+    label: "Execution",
+    items: [
       {
         key: "calendar",
         label: "Calendar",
@@ -61,6 +66,11 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: <Newspaper className="h-4 w-4" />,
         href: "/app/news",
       },
+    ],
+  },
+  {
+    label: "System",
+    items: [
       {
         key: "settings",
         label: "Settings",
