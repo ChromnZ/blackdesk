@@ -39,6 +39,7 @@ async function loadProfileState(userId: string) {
         lastName: true,
         email: true,
         image: true,
+        passwordHash: true,
       },
     }),
     prisma.account.findFirst({
@@ -62,6 +63,7 @@ async function loadProfileState(userId: string) {
     email: user.email,
     image: user.image,
     googleLinked: Boolean(googleAccount),
+    hasPassword: Boolean(user.passwordHash),
   };
 }
 

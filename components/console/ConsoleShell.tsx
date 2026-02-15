@@ -44,7 +44,6 @@ export function ConsoleShell({ activeNavKey, user, children }: ConsoleShellProps
         <Topbar
           onMenuClick={() => setMobileSidebarOpen(true)}
           user={user}
-          title="BlackDesk"
         />
         <main className="min-h-[calc(100vh-56px)] bg-[#070708] p-4 md:p-6">
           {children}

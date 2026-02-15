@@ -17,6 +17,7 @@ type ProfileSettingsPayload = {
   email: string | null;
   image: string | null;
   googleLinked: boolean;
+  hasPassword: boolean;
 };
 
 export function ProfileIntegrations() {
@@ -33,9 +34,13 @@ export function ProfileIntegrations() {
   );
   const [removeImage, setRemoveImage] = useState(false);
   const [googleLinked, setGoogleLinked] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
+  const [disconnectPassword, setDisconnectPassword] = useState("");
+  const [disconnectConfirmPassword, setDisconnectConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -67,6 +72,7 @@ export function ProfileIntegrations() {
         setPendingImageDataUrl(null);
         setRemoveImage(false);
         setGoogleLinked(payload.googleLinked);
+        setHasPassword(payload.hasPassword);
       } catch {
         setError("Unable to load profile settings.");
       } finally {
@@ -194,6 +200,7 @@ export function ProfileIntegrations() {
       setPendingImageDataUrl(null);
       setRemoveImage(false);
       setGoogleLinked(payload.googleLinked);
+      setHasPassword(payload.hasPassword);
       setSuccess("Profile updated.");
     } catch {
       setError("Unable to update profile.");
@@ -208,6 +215,66 @@ export function ProfileIntegrations() {
     setLinkingGoogle(true);
     await signIn("google", { callbackUrl: "/app/settings?linked=google" });
     setLinkingGoogle(false);
+  }
+
+  async function handleDisconnectGoogle() {
+    if (!googleLinked || disconnectingGoogle) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    if (!hasPassword) {
+      if (!disconnectPassword || disconnectPassword.length < 8) {
+        setError("Set a password (minimum 8 characters) to disconnect Google.");
+        return;
+      }
+
+      if (disconnectPassword !== disconnectConfirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+    }
+
+    setDisconnectingGoogle(true);
+
+    try {
+      const response = await fetch("/api/settings/integrations/google", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          hasPassword
+            ? {}
+            : {
+                password: disconnectPassword,
+                confirmPassword: disconnectConfirmPassword,
+              },
+        ),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { googleLinked?: boolean; hasPassword?: boolean; message?: string; error?: string }
+        | null;
+
+      if (!response.ok) {
+        setError(payload?.error ?? "Unable to disconnect Google.");
+        setDisconnectingGoogle(false);
+        return;
+      }
+
+      setGoogleLinked(Boolean(payload?.googleLinked));
+      setHasPassword(Boolean(payload?.hasPassword));
+      setDisconnectPassword("");
+      setDisconnectConfirmPassword("");
+      setSuccess(payload?.message ?? "Google integration disconnected.");
+    } catch {
+      setError("Unable to disconnect Google.");
+    } finally {
+      setDisconnectingGoogle(false);
+    }
   }
 
   if (loading) {
@@ -378,6 +445,57 @@ export function ProfileIntegrations() {
               </button>
             )}
           </div>
+
+          {googleLinked && (
+            <div className="mt-3 space-y-3 rounded-md border border-border bg-panel/60 p-3">
+              {!hasPassword && (
+                <>
+                  <p className="text-xs text-textMuted">
+                    Add a password before disconnecting Google. You will use email + password to sign in.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="disconnect-password" className="block text-xs text-textMuted">
+                        New password
+                      </label>
+                      <input
+                        id="disconnect-password"
+                        type="password"
+                        minLength={8}
+                        value={disconnectPassword}
+                        onChange={(event) => setDisconnectPassword(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+                        placeholder="At least 8 characters"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="disconnect-confirm-password" className="block text-xs text-textMuted">
+                        Confirm password
+                      </label>
+                      <input
+                        id="disconnect-confirm-password"
+                        type="password"
+                        minLength={8}
+                        value={disconnectConfirmPassword}
+                        onChange={(event) => setDisconnectConfirmPassword(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+                        placeholder="Re-enter password"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleDisconnectGoogle()}
+                disabled={disconnectingGoogle}
+                className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 text-sm text-red-300 transition hover:bg-red-900/35 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {disconnectingGoogle ? "Disconnecting..." : "Disconnect Google"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

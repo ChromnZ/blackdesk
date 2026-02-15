@@ -12,7 +12,7 @@ type TopbarProps = {
     image?: string | null;
   };
   onMenuClick: () => void;
-  title?: string;
+  title?: string | null;
   leftSlot?: ReactNode;
   rightSlot?: ReactNode;
 };
@@ -20,7 +20,7 @@ type TopbarProps = {
 export function Topbar({
   user,
   onMenuClick,
-  title = "BlackDesk",
+  title = null,
   leftSlot,
   rightSlot,
 }: TopbarProps) {
@@ -37,9 +37,8 @@ export function Topbar({
             <Menu className="h-4 w-4" />
           </button>
 
-          {leftSlot ? (
-            leftSlot
-          ) : (
+          {leftSlot}
+          {!leftSlot && title && (
             <p className="truncate text-sm font-semibold tracking-tight text-zinc-100">
               {title}
             </p>

@@ -149,15 +149,24 @@ export function ConsoleSidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-900/80 bg-[#070708] transition-transform md:static md:z-0 md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-900/80 bg-[#070708] transition-transform md:static md:z-0 md:translate-x-0 md:transition-[width] md:duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed ? "md:w-20" : "md:w-72",
         )}
       >
         <div className="flex items-center justify-between border-b border-zinc-900/80 px-4 py-4">
-          <div className={cn("min-w-0", collapsed && "md:hidden")}>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500">Console</p>
-            <p className="truncate text-lg font-semibold text-zinc-100">BlackDesk Console</p>
+          <div className="min-h-[44px] min-w-0">
+            <p
+              className={cn(
+                "text-[11px] uppercase tracking-[0.24em] text-zinc-500 transition-opacity duration-200",
+                collapsed ? "opacity-0" : "opacity-100",
+              )}
+            >
+              Console
+            </p>
+            <p className="truncate text-lg font-semibold text-zinc-100">
+              {collapsed ? "BD" : "BlackDesk Console"}
+            </p>
           </div>
           <button
             type="button"
@@ -172,11 +181,14 @@ export function ConsoleSidebar({
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {SIDEBAR_SECTIONS.map((section) => (
             <div key={section.label} className="mb-4">
-              {!collapsed && (
-                <p className="px-2 pb-2 text-[11px] uppercase tracking-[0.24em] text-zinc-500">
-                  {section.label}
-                </p>
-              )}
+              <p
+                className={cn(
+                  "px-2 pb-2 text-[11px] uppercase tracking-[0.24em] text-zinc-500 transition-opacity duration-150",
+                  collapsed ? "invisible" : "visible",
+                )}
+              >
+                {section.label}
+              </p>
               <div className="space-y-1">
                 {section.items.map((item) => (
                   <SidebarItemButton
