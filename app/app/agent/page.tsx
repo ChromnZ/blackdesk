@@ -1,4 +1,5 @@
-import { AgentConsoleHome } from "@/components/agent/agent-console-home";
+import { AgentChat } from "@/components/agent/agent-chat";
+
 export default function AgentPage() {
-  return <AgentConsoleHome />;
+  return <AgentChat />;
 }
