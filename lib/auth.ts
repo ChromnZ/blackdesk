@@ -98,11 +98,64 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google" || !user?.id) {
+        return true;
+      }
+
+      const rawProfile =
+        profile && typeof profile === "object"
+          ? (profile as Record<string, unknown>)
+          : null;
+
+      const profileEmail =
+        typeof rawProfile?.email === "string"
+          ? rawProfile.email.trim().toLowerCase()
+          : null;
+      const profileImage =
+        typeof rawProfile?.picture === "string"
+          ? rawProfile.picture
+          : typeof rawProfile?.image === "string"
+            ? rawProfile.image
+            : null;
+      const profileName =
+        typeof rawProfile?.name === "string" ? rawProfile.name : null;
+
+      const updateData: {
+        email?: string;
+        image?: string;
+        name?: string;
+      } = {};
+
+      if (profileEmail) {
+        updateData.email = profileEmail;
+      }
+      if (profileImage) {
+        updateData.image = profileImage;
+      }
+      if (profileName) {
+        updateData.name = profileName;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: updateData,
+          });
+        } catch {
+          // Do not block login if profile sync fails.
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
         token.username = user.username ?? token.username;
         token.email = user.email;
+        token.picture = user.image ?? token.picture;
         token.usernameSetupComplete = user.usernameSetupComplete ?? token.usernameSetupComplete;
       }
 
@@ -112,11 +165,13 @@ export const authOptions: NextAuthOptions = {
           select: {
             username: true,
             email: true,
+            image: true,
             usernameSetupComplete: true,
           },
         });
         token.username = dbUser?.username ?? token.username;
         token.email = dbUser?.email ?? token.email;
+        token.picture = dbUser?.image ?? token.picture;
         token.usernameSetupComplete =
           dbUser?.usernameSetupComplete ?? token.usernameSetupComplete;
       }
@@ -129,6 +184,8 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username ?? session.user.name ?? "user";
         session.user.usernameSetupComplete = Boolean(token.usernameSetupComplete);
         session.user.email = token.email ?? null;
+        session.user.image =
+          typeof token.picture === "string" ? token.picture : null;
       }
       return session;
     },

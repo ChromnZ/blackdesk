@@ -9,6 +9,7 @@ type AppShellProps = {
   user: {
     username: string;
     email?: string;
+    image?: string | null;
   };
 };
 

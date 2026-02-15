@@ -108,8 +108,9 @@ npm run prisma:seed
 - Credentials registration requires email + username + password.
 - New Google users are prompted to choose a permanent username before entering the app.
 - Settings includes Integrations so credentials users can link Google login.
-- Email can be updated from Settings.
-- Users can configure their own LLM provider, model, and API keys in Settings.
+- Email and profile picture can be updated from Settings.
+- When Google is linked/logged in, BlackDesk syncs Google email and profile photo.
+- Users configure AI API keys in Settings, then choose provider/model from the AI Agent page.
 - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
 - Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).
 - Agent can create tasks/events automatically from chat input.

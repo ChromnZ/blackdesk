@@ -20,6 +20,7 @@ type SidebarProps = {
   user: {
     username: string;
     email?: string;
+    image?: string | null;
   };
   open: boolean;
   onClose: () => void;
@@ -106,11 +107,26 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
 
         <div className="mt-auto border-t border-border py-4">
           <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-black/40 px-3 py-2">
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">
-                {user.username}
-              </p>
-              <p className="truncate text-[11px] text-textMuted">{user.email ?? "No email"}</p>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-panelSoft text-xs font-semibold text-textMain">
+                {user.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.image}
+                    alt={`${user.username} profile picture`}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  user.username.slice(0, 1).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">
+                  {user.username}
+                </p>
+                <p className="truncate text-[11px] text-textMuted">{user.email ?? "No email"}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <LogoutButton

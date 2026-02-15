@@ -1,4 +1,5 @@
 import {
+  LLM_MODELS,
   defaultModelForProvider,
   isLlmProvider,
   isValidModelForProvider,
@@ -18,6 +19,8 @@ const messageSchema = z.object({
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(3000),
   history: z.array(messageSchema).max(20).optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
 });
 
 const taskDecisionSchema = z.object({
@@ -332,6 +335,8 @@ export async function POST(request: Request) {
 
     const message = parsedRequest.data.message.trim();
     const history = parsedRequest.data.history ?? [];
+    const requestProvider = parsedRequest.data.provider;
+    const requestModel = parsedRequest.data.model;
 
     const userSettings = await prisma.userLlmSettings.findUnique({
       where: { userId },
@@ -344,15 +349,27 @@ export async function POST(request: Request) {
       },
     });
 
-    const provider: LlmProvider =
+    const persistedProvider: LlmProvider =
       userSettings && isLlmProvider(userSettings.provider)
         ? userSettings.provider
         : "openai";
 
-    const model =
-      userSettings?.model && isValidModelForProvider(provider, userSettings.model)
+    const requestedProvider = requestProvider && isLlmProvider(requestProvider)
+      ? requestProvider
+      : null;
+    const provider = requestedProvider ?? persistedProvider;
+
+    const persistedModel =
+      userSettings?.model && isValidModelForProvider(persistedProvider, userSettings.model)
         ? userSettings.model
-        : defaultModelForProvider(provider);
+        : defaultModelForProvider(persistedProvider);
+
+    const model =
+      requestModel && isValidModelForProvider(provider, requestModel)
+        ? requestModel
+        : provider === persistedProvider
+          ? persistedModel
+          : defaultModelForProvider(provider);
 
     const openaiUserKey = decryptSecret(userSettings?.openaiApiKeyEnc);
     const anthropicUserKey = decryptSecret(userSettings?.anthropicApiKeyEnc);
@@ -364,6 +381,12 @@ export async function POST(request: Request) {
         : provider === "anthropic"
           ? anthropicUserKey ?? process.env.ANTHROPIC_API_KEY ?? null
           : googleUserKey ?? process.env.GOOGLE_API_KEY ?? null;
+
+    const linkedProviderCount =
+      Number(Boolean(openaiUserKey)) +
+      Number(Boolean(anthropicUserKey)) +
+      Number(Boolean(googleUserKey));
+    const hasLinkedAi = linkedProviderCount > 0;
 
     let decision = await requestDecisionByProvider({
       provider,
@@ -389,6 +412,8 @@ export async function POST(request: Request) {
             usedFallback,
             provider,
             model,
+            hasLinkedAi,
+            availableModels: LLM_MODELS,
           },
           { status: 200 },
         );
@@ -419,6 +444,8 @@ export async function POST(request: Request) {
         usedFallback,
         provider,
         model,
+        hasLinkedAi,
+        availableModels: LLM_MODELS,
       });
     }
 
@@ -432,6 +459,8 @@ export async function POST(request: Request) {
             usedFallback,
             provider,
             model,
+            hasLinkedAi,
+            availableModels: LLM_MODELS,
           },
           { status: 200 },
         );
@@ -466,6 +495,8 @@ export async function POST(request: Request) {
         usedFallback,
         provider,
         model,
+        hasLinkedAi,
+        availableModels: LLM_MODELS,
       });
     }
 
@@ -475,6 +506,8 @@ export async function POST(request: Request) {
       usedFallback,
       provider,
       model,
+      hasLinkedAi,
+      availableModels: LLM_MODELS,
     });
   } catch {
     return NextResponse.json(

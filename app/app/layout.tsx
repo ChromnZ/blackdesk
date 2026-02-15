@@ -23,6 +23,7 @@ export default async function ProtectedLayout({
       user={{
         username: session.user.username,
         email: session.user.email ?? undefined,
+        image: session.user.image ?? null,
       }}
     >
       {children}

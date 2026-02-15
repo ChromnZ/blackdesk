@@ -4,27 +4,44 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-const emailSchema = z.object({
-  email: z.string().trim().toLowerCase().email("A valid email is required."),
-});
+const IMAGE_DATA_URL_REGEX =
+  /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i;
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+const updateProfileSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("A valid email is required.")
+      .optional(),
+    image: z
+      .string()
+      .max(3_000_000, "Profile image is too large.")
+      .refine((value) => IMAGE_DATA_URL_REGEX.test(value), {
+        message: "Invalid image format. Use PNG, JPG, WEBP, or GIF.",
+      })
+      .optional(),
+    removeImage: z.boolean().optional(),
+  })
+  .refine((data) => !(data.image && data.removeImage), {
+    message: "Cannot upload and remove image in the same request.",
+    path: ["image"],
+  });
 
+async function loadProfileState(userId: string) {
   const [user, googleAccount] = await Promise.all([
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: {
         username: true,
         email: true,
+        image: true,
       },
     }),
     prisma.account.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         provider: "google",
       },
       select: {
@@ -34,14 +51,29 @@ export async function GET() {
   ]);
 
   if (!user) {
+    return null;
+  }
+
+  return {
+    username: user.username,
+    email: user.email,
+    image: user.image,
+    googleLinked: Boolean(googleAccount),
+  };
+}
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const profile = await loadProfileState(session.user.id);
+  if (!profile) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
-  return NextResponse.json({
-    username: user.username,
-    email: user.email,
-    googleLinked: Boolean(googleAccount),
-  });
+  return NextResponse.json(profile);
 }
 
 export async function PATCH(request: Request) {
@@ -50,53 +82,65 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = emailSchema.safeParse(await request.json());
+  const payload = updateProfileSchema.safeParse(await request.json());
   if (!payload.success) {
     return NextResponse.json(
-      { error: payload.error.issues[0]?.message ?? "Invalid email." },
+      { error: payload.error.issues[0]?.message ?? "Invalid profile update." },
       { status: 400 },
     );
   }
 
-  const email = payload.data.email;
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-
-  if (existingUser && existingUser.id !== session.user.id) {
+  if (
+    typeof payload.data.email === "undefined" &&
+    typeof payload.data.image === "undefined" &&
+    !payload.data.removeImage
+  ) {
     return NextResponse.json(
-      { error: "Email is already in use." },
-      { status: 409 },
+      { error: "No profile changes provided." },
+      { status: 400 },
     );
   }
 
-  const updated = await prisma.user.update({
+  if (payload.data.email) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: payload.data.email },
+      select: { id: true },
+    });
+
+    if (existingUser && existingUser.id !== session.user.id) {
+      return NextResponse.json(
+        { error: "Email is already in use." },
+        { status: 409 },
+      );
+    }
+  }
+
+  const updateData: {
+    email?: string;
+    emailVerified?: null;
+    image?: string | null;
+  } = {};
+
+  if (payload.data.email) {
+    updateData.email = payload.data.email;
+    updateData.emailVerified = null;
+  }
+
+  if (payload.data.removeImage) {
+    updateData.image = null;
+  } else if (payload.data.image) {
+    updateData.image = payload.data.image;
+  }
+
+  await prisma.user.update({
     where: { id: session.user.id },
-    data: {
-      email,
-      emailVerified: null,
-    },
-    select: {
-      username: true,
-      email: true,
-    },
+    data: updateData,
   });
 
-  const googleAccount = await prisma.account.findFirst({
-    where: {
-      userId: session.user.id,
-      provider: "google",
-    },
-    select: {
-      id: true,
-    },
-  });
+  const profile = await loadProfileState(session.user.id);
+  if (!profile) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
 
-  return NextResponse.json({
-    username: updated.username,
-    email: updated.email,
-    googleLinked: Boolean(googleAccount),
-  });
+  return NextResponse.json(profile);
 }

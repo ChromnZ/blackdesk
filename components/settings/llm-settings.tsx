@@ -1,26 +1,15 @@
 "use client";
 
-import {
-  LLM_MODELS,
-  defaultModelForProvider,
-  isLlmProvider,
-  isValidModelForProvider,
-  type LlmProvider,
-} from "@/lib/llm-config";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type SettingsResponse = {
-  provider: string;
-  model: string;
   hasOpenaiApiKey: boolean;
   hasAnthropicApiKey: boolean;
   hasGoogleApiKey: boolean;
-  availableModels: typeof LLM_MODELS;
+  error?: string;
 };
 
 type FormState = {
-  provider: LlmProvider;
-  model: string;
   openaiApiKey: string;
   anthropicApiKey: string;
   googleApiKey: string;
@@ -31,8 +20,6 @@ type FormState = {
 
 function initialFormState(): FormState {
   return {
-    provider: "openai",
-    model: defaultModelForProvider("openai"),
     openaiApiKey: "",
     anthropicApiKey: "",
     googleApiKey: "",
@@ -49,8 +36,6 @@ export function LlmSettings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const modelOptions = useMemo(() => LLM_MODELS[form.provider], [form.provider]);
-
   useEffect(() => {
     async function loadSettings() {
       setLoading(true);
@@ -58,22 +43,15 @@ export function LlmSettings() {
 
       try {
         const response = await fetch("/api/agent/settings", { cache: "no-store" });
-        const payload = (await response.json()) as SettingsResponse | { error?: string };
+        const payload = (await response.json()) as SettingsResponse;
 
-        if (!response.ok || !("provider" in payload) || !isLlmProvider(payload.provider)) {
-          setError("Unable to load AI settings.");
+        if (!response.ok) {
+          setError(payload.error ?? "Unable to load AI settings.");
           setLoading(false);
           return;
         }
 
-        const provider = payload.provider;
-        const model = isValidModelForProvider(provider, payload.model)
-          ? payload.model
-          : defaultModelForProvider(provider);
-
         setForm({
-          provider,
-          model,
           openaiApiKey: "",
           anthropicApiKey: "",
           googleApiKey: "",
@@ -103,26 +81,22 @@ export function LlmSettings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          provider: form.provider,
-          model: form.model,
           openaiApiKey: form.openaiApiKey.trim() || undefined,
           anthropicApiKey: form.anthropicApiKey.trim() || undefined,
           googleApiKey: form.googleApiKey.trim() || undefined,
         }),
       });
 
-      const payload = (await response.json()) as SettingsResponse | { error?: string };
+      const payload = (await response.json()) as SettingsResponse;
 
-      if (!response.ok || !("provider" in payload) || !isLlmProvider(payload.provider)) {
-        setError(("error" in payload && payload.error) || "Unable to save AI settings.");
+      if (!response.ok) {
+        setError(payload.error || "Unable to save AI settings.");
         setSaving(false);
         return;
       }
 
       setForm((current) => ({
         ...current,
-        provider: payload.provider as LlmProvider,
-        model: payload.model,
         openaiApiKey: "",
         anthropicApiKey: "",
         googleApiKey: "",
@@ -159,10 +133,10 @@ export function LlmSettings() {
         body: JSON.stringify(body),
       });
 
-      const payload = (await response.json()) as SettingsResponse | { error?: string };
+      const payload = (await response.json()) as SettingsResponse;
 
-      if (!response.ok || !("provider" in payload) || !isLlmProvider(payload.provider)) {
-        setError(("error" in payload && payload.error) || "Unable to clear API key.");
+      if (!response.ok) {
+        setError(payload.error || "Unable to clear API key.");
         setSaving(false);
         return;
       }
@@ -185,7 +159,7 @@ export function LlmSettings() {
     <div className="rounded-lg border border-border bg-panel p-5 shadow-glow">
       <h2 className="font-display text-lg">AI Settings</h2>
       <p className="mt-1 text-sm text-textMuted">
-        Choose your provider/model and store your own API keys for agent actions.
+        Add and manage provider API keys. Provider/model selection is handled in AI Agent.
       </p>
 
       {isLoading ? (
@@ -202,59 +176,6 @@ export function LlmSettings() {
               {success}
             </p>
           )}
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="provider" className="mb-1 block text-sm text-textMuted">
-                Provider
-              </label>
-              <select
-                id="provider"
-                value={form.provider}
-                onChange={(event) => {
-                  const nextProvider = event.target.value;
-                  if (!isLlmProvider(nextProvider)) {
-                    return;
-                  }
-
-                  const nextModel = isValidModelForProvider(nextProvider, form.model)
-                    ? form.model
-                    : defaultModelForProvider(nextProvider);
-
-                  setForm((current) => ({
-                    ...current,
-                    provider: nextProvider,
-                    model: nextModel,
-                  }));
-                }}
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
-              >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Claude (Anthropic)</option>
-                <option value="google">Google (Gemini)</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="model" className="mb-1 block text-sm text-textMuted">
-                Model
-              </label>
-              <select
-                id="model"
-                value={form.model}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, model: event.target.value }))
-                }
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
-              >
-                {modelOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
 
           <div className="space-y-3 rounded-md border border-border bg-black p-3">
             <div className="flex items-center justify-between gap-2">

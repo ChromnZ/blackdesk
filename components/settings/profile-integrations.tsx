@@ -2,23 +2,32 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type ProfileSettingsPayload = {
   username: string;
   email: string | null;
+  image: string | null;
   googleLinked: boolean;
 };
+
+const MAX_AVATAR_FILE_BYTES = 1_500_000;
 
 export function ProfileIntegrations() {
   const searchParams = useSearchParams();
   const linkedParam = searchParams.get("linked");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(
+    null,
+  );
+  const [removeImage, setRemoveImage] = useState(false);
   const [googleLinked, setGoogleLinked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -46,6 +55,9 @@ export function ProfileIntegrations() {
 
         setUsername(payload.username);
         setEmail(payload.email ?? "");
+        setImage(payload.image ?? null);
+        setPendingImageDataUrl(null);
+        setRemoveImage(false);
         setGoogleLinked(payload.googleLinked);
       } catch {
         setError("Unable to load profile settings.");
@@ -63,21 +75,82 @@ export function ProfileIntegrations() {
     }
   }, [linkedFromReturn]);
 
-  async function handleSaveEmail(event: FormEvent<HTMLFormElement>) {
+  function handleSelectAvatar() {
+    fileInputRef.current?.click();
+  }
+
+  function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    if (!selectedFile.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      return;
+    }
+
+    if (selectedFile.size > MAX_AVATAR_FILE_BYTES) {
+      setError("Image is too large. Use an image smaller than 1.5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        setError("Unable to read image file.");
+        return;
+      }
+
+      setError(null);
+      setSuccess(null);
+      setPendingImageDataUrl(reader.result);
+      setRemoveImage(false);
+      setImage(reader.result);
+    };
+    reader.onerror = () => {
+      setError("Unable to read image file.");
+    };
+    reader.readAsDataURL(selectedFile);
+    event.target.value = "";
+  }
+
+  function handleRemoveAvatar() {
+    setPendingImageDataUrl(null);
+    setRemoveImage(true);
+    setImage(null);
+    setError(null);
+    setSuccess(null);
+  }
+
+  async function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
-    setSavingEmail(true);
+    setSavingProfile(true);
 
     try {
+      const body: {
+        email?: string;
+        image?: string;
+        removeImage?: boolean;
+      } = {
+        email: email.trim().toLowerCase(),
+      };
+
+      if (pendingImageDataUrl) {
+        body.image = pendingImageDataUrl;
+      }
+      if (removeImage) {
+        body.removeImage = true;
+      }
+
       const response = await fetch("/api/settings/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-        }),
+        body: JSON.stringify(body),
       });
 
       const payload = (await response.json()) as
@@ -85,19 +158,22 @@ export function ProfileIntegrations() {
         | { error?: string };
 
       if (!response.ok || !("username" in payload)) {
-        setError(("error" in payload && payload.error) || "Unable to update email.");
-        setSavingEmail(false);
+        setError(("error" in payload && payload.error) || "Unable to update profile.");
+        setSavingProfile(false);
         return;
       }
 
       setUsername(payload.username);
       setEmail(payload.email ?? "");
+      setImage(payload.image ?? null);
+      setPendingImageDataUrl(null);
+      setRemoveImage(false);
       setGoogleLinked(payload.googleLinked);
-      setSuccess("Email updated.");
+      setSuccess("Profile updated.");
     } catch {
-      setError("Unable to update email.");
+      setError("Unable to update profile.");
     } finally {
-      setSavingEmail(false);
+      setSavingProfile(false);
     }
   }
 
@@ -123,7 +199,7 @@ export function ProfileIntegrations() {
       <div>
         <h2 className="font-display text-lg">Profile</h2>
         <p className="mt-1 text-sm text-textMuted">
-          Username is permanent. Email can be updated anytime.
+          Username is permanent. You can update your email and photo.
         </p>
       </div>
 
@@ -145,7 +221,53 @@ export function ProfileIntegrations() {
         <p className="mt-1 text-xs text-textMuted">Lowercase letters and numbers only, cannot be changed.</p>
       </div>
 
-      <form className="space-y-2" onSubmit={handleSaveEmail}>
+      <div className="rounded-md border border-border bg-black/30 p-3">
+        <p className="text-xs uppercase tracking-[0.18em] text-textMuted">
+          Profile Picture
+        </p>
+        <div className="mt-2 flex items-center gap-3">
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-border bg-panelSoft text-xl font-semibold text-textMain">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image}
+                alt={`${username} profile picture`}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              username.slice(0, 1).toUpperCase()
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              type="button"
+              onClick={handleSelectAvatar}
+              className="rounded-md border border-border bg-black px-3 py-1.5 text-sm text-textMain transition hover:bg-panelSoft"
+            >
+              Upload photo
+            </button>
+            {image && (
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 text-sm text-red-300 transition hover:bg-red-900/35"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <form className="space-y-2" onSubmit={handleSaveProfile}>
         <label htmlFor="email" className="block text-sm text-textMuted">
           Email
         </label>
@@ -162,10 +284,10 @@ export function ProfileIntegrations() {
         />
         <button
           type="submit"
-          disabled={savingEmail}
+          disabled={savingProfile}
           className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {savingEmail ? "Saving..." : "Save email"}
+          {savingProfile ? "Saving..." : "Save profile changes"}
         </button>
       </form>
 
@@ -178,7 +300,9 @@ export function ProfileIntegrations() {
             <div>
               <p className="text-sm text-textMain">Google</p>
               <p className="mt-1 text-xs text-textMuted">
-                {googleLinked ? "Connected" : "Not connected"}
+                {googleLinked
+                  ? "Connected (email and photo sync from Google on login/link)"
+                  : "Not connected"}
               </p>
             </div>
             {googleLinked ? (
