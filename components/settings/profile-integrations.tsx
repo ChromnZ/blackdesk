@@ -1,5 +1,6 @@
 "use client";
 
+import { FALLBACK_TIMEZONE_OPTIONS, LOCATION_OPTIONS } from "@/lib/geo";
 import { initialsFromName } from "@/lib/name-utils";
 import {
   MAX_PROFILE_IMAGE_DIMENSION,
@@ -7,6 +8,7 @@ import {
   validateProfileImageDataUrl,
   validateProfileImageDimensions,
 } from "@/lib/profile-image";
+import { Chrome } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -21,26 +23,6 @@ type ProfileSettingsPayload = {
   googleLinked: boolean;
   hasPassword: boolean;
 };
-
-const FALLBACK_TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Toronto",
-  "America/Sao_Paulo",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Madrid",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Asia/Colombo",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-];
 
 export function ProfileIntegrations() {
   const searchParams = useSearchParams();
@@ -69,17 +51,33 @@ export function ProfileIntegrations() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const linkedFromReturn = useMemo(() => linkedParam === "google", [linkedParam]);
+  const locationOptions = useMemo(() => {
+    const options: string[] = [...LOCATION_OPTIONS];
+    if (location && !options.includes(location)) {
+      options.unshift(location);
+    }
+
+    return options;
+  }, [location]);
   const timezoneOptions = useMemo(() => {
     const supportedValuesOf = Intl.supportedValuesOf as
       | ((key: "timeZone") => string[])
       | undefined;
 
     if (typeof supportedValuesOf === "function") {
-      return supportedValuesOf("timeZone");
+      const options = supportedValuesOf("timeZone");
+      if (timezone && !options.includes(timezone)) {
+        return [timezone, ...options];
+      }
+      return options;
     }
 
-    return FALLBACK_TIMEZONES;
-  }, []);
+    const fallbackOptions: string[] = [...FALLBACK_TIMEZONE_OPTIONS];
+    if (timezone && !fallbackOptions.includes(timezone)) {
+      fallbackOptions.unshift(timezone);
+    }
+    return fallbackOptions;
+  }, [timezone]);
 
   useEffect(() => {
     async function loadProfile() {
@@ -456,34 +454,40 @@ export function ProfileIntegrations() {
           <label htmlFor="location" className="block text-sm text-textMuted">
             Location
           </label>
-          <input
+          <select
             id="location"
             name="location"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
-            placeholder="City, Country"
-          />
+            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+          >
+            <option value="">Select location</option>
+            {locationOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label htmlFor="timezone" className="block text-sm text-textMuted">
             Timezone
           </label>
-          <input
+          <select
             id="timezone"
             name="timezone"
-            list="timezone-options"
             value={timezone}
             onChange={(event) => setTimezone(event.target.value)}
-            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
-            placeholder="e.g. Asia/Colombo"
-          />
-          <datalist id="timezone-options">
+            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+          >
+            <option value="">Select timezone</option>
             {timezoneOptions.map((item) => (
-              <option key={item} value={item} />
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
 
         <button
@@ -501,13 +505,18 @@ export function ProfileIntegrations() {
         <h3 className="font-display text-base">Integrations</h3>
         <div className="mt-3 rounded-md border border-border bg-panelSoft/80 px-3 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm text-textMain">Google</p>
-              <p className="mt-1 text-xs text-textMuted">
-                {googleLinked
-                  ? "Connected (name, email, and photo sync from Google on login/link)"
-                  : "Not connected"}
-              </p>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-textMain">
+                <Chrome className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm text-textMain">Google</p>
+                <p className="mt-1 text-xs text-textMuted">
+                  {googleLinked
+                    ? "Connected (name, email, and photo sync from Google on login/link)"
+                    : "Not connected"}
+                </p>
+              </div>
             </div>
             {googleLinked ? (
               <span className="rounded-md border border-emerald-700/50 bg-emerald-900/20 px-2.5 py-1 text-xs text-emerald-300">

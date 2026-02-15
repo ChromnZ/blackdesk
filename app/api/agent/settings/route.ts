@@ -33,10 +33,11 @@ function maskSecret(encrypted: string | null) {
 
   const decrypted = decryptSecret(encrypted);
   if (!decrypted) {
-    return "********";
+    return "******";
   }
 
-  return "*".repeat(decrypted.length);
+  const maskLength = Math.min(12, Math.max(6, decrypted.length));
+  return "*".repeat(maskLength);
 }
 
 function toPublicResponse(args: {

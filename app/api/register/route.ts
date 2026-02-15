@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { detectGeoFromRequest } from "@/lib/geo";
 import { generateInternalUsername } from "@/lib/internal-username";
 import { formatDisplayName } from "@/lib/name-utils";
 import {
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const username = await generateInternalUsername(email);
+    const geo = await detectGeoFromRequest(request);
 
     await prisma.user.create({
       data: {
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
         lastName,
         username,
         email,
+        location: geo.location,
+        timezone: geo.timezone,
         image: image ?? null,
         passwordHash,
         name: formatDisplayName(firstName, lastName, email),

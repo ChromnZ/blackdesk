@@ -1,8 +1,9 @@
 "use client";
 
+import { Modal } from "@/components/console/Modal";
+import { cn } from "@/lib/utils";
 import { Bot, Globe, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 
 type SettingsResponse = {
   hasOpenaiApiKey: boolean;
@@ -53,18 +54,46 @@ const PROVIDERS: Array<{
   { id: "google", label: "Google", icon: Globe, placeholder: "AIza..." },
 ];
 
+function providerPatchPayload(provider: ProviderId, value: string) {
+  if (provider === "openai") {
+    return { openaiApiKey: value };
+  }
+
+  if (provider === "anthropic") {
+    return { anthropicApiKey: value };
+  }
+
+  return { googleApiKey: value };
+}
+
+function providerClearPayload(provider: ProviderId) {
+  if (provider === "openai") {
+    return { clearOpenaiApiKey: true };
+  }
+
+  if (provider === "anthropic") {
+    return { clearAnthropicApiKey: true };
+  }
+
+  return { clearGoogleApiKey: true };
+}
+
+function providerById(provider: ProviderId) {
+  return PROVIDERS.find((item) => item.id === provider) ?? PROVIDERS[0];
+}
+
 export function LlmSettings() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [activeProvider, setActiveProvider] = useState<ProviderId>("openai");
-  const [editingKey, setEditingKey] = useState<Record<ProviderId, boolean>>({
-    openai: false,
-    anthropic: false,
-    google: false,
-  });
   const [isLoading, setLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [changeProvider, setChangeProvider] = useState<ProviderId | null>(null);
+  const [changeApiKeyValue, setChangeApiKeyValue] = useState("");
+  const [changeError, setChangeError] = useState<string | null>(null);
+  const [deleteProvider, setDeleteProvider] = useState<ProviderId | null>(null);
 
   function getProviderStatus(providerId: ProviderId) {
     if (providerId === "openai") {
@@ -104,32 +133,18 @@ export function LlmSettings() {
     setForm((current) => ({ ...current, googleApiKey: value }));
   }
 
-  function clearProviderValue(providerId: ProviderId) {
-    if (providerId === "openai") {
-      setForm((current) => ({
-        ...current,
-        openaiApiKey: "",
-        hasOpenaiApiKey: false,
-        openaiApiKeyMask: null,
-      }));
-      return;
-    }
-
-    if (providerId === "anthropic") {
-      setForm((current) => ({
-        ...current,
-        anthropicApiKey: "",
-        hasAnthropicApiKey: false,
-        anthropicApiKeyMask: null,
-      }));
-      return;
-    }
-
+  function applyPayload(payload: SettingsResponse) {
     setForm((current) => ({
       ...current,
+      openaiApiKey: "",
+      anthropicApiKey: "",
       googleApiKey: "",
-      hasGoogleApiKey: false,
-      googleApiKeyMask: null,
+      hasOpenaiApiKey: payload.hasOpenaiApiKey,
+      hasAnthropicApiKey: payload.hasAnthropicApiKey,
+      hasGoogleApiKey: payload.hasGoogleApiKey,
+      openaiApiKeyMask: payload.openaiApiKeyMask ?? null,
+      anthropicApiKeyMask: payload.anthropicApiKeyMask ?? null,
+      googleApiKeyMask: payload.googleApiKeyMask ?? null,
     }));
   }
 
@@ -148,18 +163,7 @@ export function LlmSettings() {
           return;
         }
 
-        setForm({
-          openaiApiKey: "",
-          anthropicApiKey: "",
-          googleApiKey: "",
-          hasOpenaiApiKey: payload.hasOpenaiApiKey,
-          hasAnthropicApiKey: payload.hasAnthropicApiKey,
-          hasGoogleApiKey: payload.hasGoogleApiKey,
-          openaiApiKeyMask: payload.openaiApiKeyMask ?? null,
-          anthropicApiKeyMask: payload.anthropicApiKeyMask ?? null,
-          googleApiKeyMask: payload.googleApiKeyMask ?? null,
-        });
-        setEditingKey({ openai: false, anthropic: false, google: false });
+        applyPayload(payload);
       } catch {
         setError("Unable to load AI settings.");
       } finally {
@@ -196,19 +200,7 @@ export function LlmSettings() {
         return;
       }
 
-      setForm((current) => ({
-        ...current,
-        openaiApiKey: "",
-        anthropicApiKey: "",
-        googleApiKey: "",
-        hasOpenaiApiKey: payload.hasOpenaiApiKey,
-        hasAnthropicApiKey: payload.hasAnthropicApiKey,
-        hasGoogleApiKey: payload.hasGoogleApiKey,
-        openaiApiKeyMask: payload.openaiApiKeyMask ?? null,
-        anthropicApiKeyMask: payload.anthropicApiKeyMask ?? null,
-        googleApiKeyMask: payload.googleApiKeyMask ?? null,
-      }));
-      setEditingKey({ openai: false, anthropic: false, google: false });
+      applyPayload(payload);
       setSuccess("AI settings updated.");
     } catch {
       setError("Unable to save AI settings.");
@@ -217,17 +209,10 @@ export function LlmSettings() {
     }
   }
 
-  async function clearKey(target: "openai" | "anthropic" | "google") {
+  async function clearKey(target: ProviderId) {
     setSaving(true);
     setError(null);
     setSuccess(null);
-
-    const body =
-      target === "openai"
-        ? { clearOpenaiApiKey: true }
-        : target === "anthropic"
-          ? { clearAnthropicApiKey: true }
-          : { clearGoogleApiKey: true };
 
     try {
       const response = await fetch("/api/agent/settings", {
@@ -235,47 +220,95 @@ export function LlmSettings() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(providerClearPayload(target)),
       });
 
       const payload = (await response.json()) as SettingsResponse;
 
       if (!response.ok) {
-        setError(payload.error || "Unable to clear API key.");
+        setError(payload.error || "Unable to delete API key.");
         setSaving(false);
-        return;
+        return false;
       }
 
-      clearProviderValue(target);
-      setForm((current) => ({
-        ...current,
-        hasOpenaiApiKey: payload.hasOpenaiApiKey,
-        hasAnthropicApiKey: payload.hasAnthropicApiKey,
-        hasGoogleApiKey: payload.hasGoogleApiKey,
-        openaiApiKeyMask: payload.openaiApiKeyMask ?? null,
-        anthropicApiKeyMask: payload.anthropicApiKeyMask ?? null,
-        googleApiKeyMask: payload.googleApiKeyMask ?? null,
-      }));
-      setEditingKey((current) => ({ ...current, [target]: false }));
-      setSuccess("API key removed.");
+      applyPayload(payload);
+      setSuccess("API key deleted.");
+      return true;
     } catch {
-      setError("Unable to clear API key.");
+      setError("Unable to delete API key.");
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
-  const activeProviderConfig =
-    PROVIDERS.find((provider) => provider.id === activeProvider) ?? PROVIDERS[0];
+  async function handleChangeKeySubmit() {
+    if (!changeProvider) {
+      return;
+    }
+
+    const trimmedKey = changeApiKeyValue.trim();
+    if (trimmedKey.length < 10) {
+      setChangeError("API key must be at least 10 characters.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    setChangeError(null);
+
+    try {
+      const response = await fetch("/api/agent/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(providerPatchPayload(changeProvider, trimmedKey)),
+      });
+
+      const payload = (await response.json()) as SettingsResponse;
+
+      if (!response.ok) {
+        const nextError = payload.error || "Unable to change API key.";
+        setChangeError(nextError);
+        setError(nextError);
+        return;
+      }
+
+      applyPayload(payload);
+      setSuccess(`${providerById(changeProvider).label} API key updated.`);
+      setChangeProvider(null);
+      setChangeApiKeyValue("");
+      setChangeError(null);
+    } catch {
+      setChangeError("Unable to change API key.");
+      setError("Unable to change API key.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteKey() {
+    if (!deleteProvider) {
+      return;
+    }
+
+    const deleted = await clearKey(deleteProvider);
+    if (deleted) {
+      setDeleteProvider(null);
+    }
+  }
+
+  const activeProviderConfig = providerById(activeProvider);
   const activeProviderStatus = getProviderStatus(activeProviderConfig.id);
-  const showMaskedValue =
-    activeProviderStatus.hasKey &&
-    !editingKey[activeProviderConfig.id] &&
-    activeProviderStatus.value.trim().length === 0;
   const hasPendingChanges =
     form.openaiApiKey.trim().length > 0 ||
     form.anthropicApiKey.trim().length > 0 ||
     form.googleApiKey.trim().length > 0;
+
+  const changeProviderConfig = changeProvider ? providerById(changeProvider) : null;
+  const deleteProviderConfig = deleteProvider ? providerById(deleteProvider) : null;
 
   return (
     <div className="rounded-lg border border-border bg-panel p-5 shadow-glow">
@@ -355,34 +388,33 @@ export function LlmSettings() {
                   <>
                     <button
                       type="button"
-                      onClick={() =>
-                        setEditingKey((current) => ({
-                          ...current,
-                          [activeProviderConfig.id]: true,
-                        }))
-                      }
+                      onClick={() => {
+                        setChangeProvider(activeProviderConfig.id);
+                        setChangeApiKeyValue("");
+                        setChangeError(null);
+                      }}
                       disabled={isSaving}
                       className="rounded-md border border-border bg-panel px-2 py-1 text-xs text-textMuted transition hover:text-textMain disabled:opacity-60"
                     >
-                      Replace
+                      Change
                     </button>
                     <button
                       type="button"
-                      onClick={() => void clearKey(activeProviderConfig.id)}
+                      onClick={() => setDeleteProvider(activeProviderConfig.id)}
                       disabled={isSaving}
                       className="rounded-md border border-red-700/50 bg-red-900/20 px-2 py-1 text-xs text-red-300 transition hover:bg-red-900/35 disabled:opacity-60"
                     >
-                      Clear
+                      Delete
                     </button>
                   </>
                 )}
               </div>
             </div>
 
-            {showMaskedValue ? (
+            {activeProviderStatus.hasKey ? (
               <input
                 id={`${activeProviderConfig.id}-key`}
-                value={activeProviderStatus.mask ?? ""}
+                value={activeProviderStatus.mask ?? "******"}
                 readOnly
                 aria-readonly="true"
                 className="w-full rounded-md border border-border bg-panel px-3 py-2 font-mono text-sm tracking-[0.08em] text-textMain"
@@ -399,12 +431,6 @@ export function LlmSettings() {
                 className="w-full rounded-md border border-border bg-panel px-3 py-2 text-sm text-textMain"
               />
             )}
-
-            {showMaskedValue && (
-              <p className="text-xs text-textMuted">
-                Stored key is masked by length. Click Replace to enter a new key.
-              </p>
-            )}
           </div>
 
           <button
@@ -417,6 +443,94 @@ export function LlmSettings() {
           </button>
         </div>
       )}
+
+      <Modal
+        title={changeProviderConfig ? `Change ${changeProviderConfig.label} API key` : "Change API key"}
+        open={Boolean(changeProvider)}
+        onClose={() => {
+          if (isSaving) {
+            return;
+          }
+          setChangeProvider(null);
+          setChangeApiKeyValue("");
+          setChangeError(null);
+        }}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-textMuted">
+            Enter a new key for this provider.
+          </p>
+          <input
+            type="password"
+            value={changeApiKeyValue}
+            onChange={(event) => setChangeApiKeyValue(event.target.value)}
+            placeholder={changeProviderConfig?.placeholder ?? "API key"}
+            className="w-full rounded-md border border-border bg-panel px-3 py-2 text-sm text-textMain"
+          />
+          {changeError && (
+            <p className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-2 text-sm text-red-300">
+              {changeError}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setChangeProvider(null);
+                setChangeApiKeyValue("");
+                setChangeError(null);
+              }}
+              disabled={isSaving}
+              className="rounded-md border border-border bg-panelSoft px-3 py-1.5 text-sm text-textMain transition hover:bg-panel disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleChangeKeySubmit()}
+              disabled={isSaving}
+              className="rounded-md border border-accent/25 bg-accent px-3 py-1.5 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:opacity-60"
+            >
+              {isSaving ? "Saving..." : "Save change"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title={deleteProviderConfig ? `Delete ${deleteProviderConfig.label} API key` : "Delete API key"}
+        open={Boolean(deleteProvider)}
+        onClose={() => {
+          if (isSaving) {
+            return;
+          }
+          setDeleteProvider(null);
+        }}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-textMuted">
+            This will remove the saved API key for this provider. Are you sure you want to continue?
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setDeleteProvider(null)}
+              disabled={isSaving}
+              className="rounded-md border border-border bg-panelSoft px-3 py-1.5 text-sm text-textMain transition hover:bg-panel disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteKey()}
+              disabled={isSaving}
+              className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 text-sm font-semibold text-red-300 transition hover:bg-red-900/35 disabled:opacity-60"
+            >
+              {isSaving ? "Deleting..." : "Delete key"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
