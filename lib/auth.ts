@@ -60,6 +60,7 @@ const adapter: Adapter = {
 
 export const authOptions: NextAuthOptions = {
   adapter,
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
