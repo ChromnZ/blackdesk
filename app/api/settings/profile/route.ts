@@ -19,6 +19,16 @@ const updateProfileSchema = z
       .toLowerCase()
       .email("A valid email is required.")
       .optional(),
+    location: z
+      .string()
+      .trim()
+      .max(160, "Location must be 160 characters or fewer.")
+      .optional(),
+    timezone: z
+      .string()
+      .trim()
+      .max(120, "Timezone must be 120 characters or fewer.")
+      .optional(),
     image: z
       .string()
       .max(MAX_PROFILE_IMAGE_DATA_URL_LENGTH, "Profile image is too large.")
@@ -38,6 +48,8 @@ async function loadProfileState(userId: string) {
         firstName: true,
         lastName: true,
         email: true,
+        location: true,
+        timezone: true,
         image: true,
         passwordHash: true,
       },
@@ -61,6 +73,8 @@ async function loadProfileState(userId: string) {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    location: user.location,
+    timezone: user.timezone,
     image: user.image,
     googleLinked: Boolean(googleAccount),
     hasPassword: Boolean(user.passwordHash),
@@ -99,6 +113,8 @@ export async function PATCH(request: Request) {
     typeof payload.data.firstName === "undefined" &&
     typeof payload.data.lastName === "undefined" &&
     typeof payload.data.email === "undefined" &&
+    typeof payload.data.location === "undefined" &&
+    typeof payload.data.timezone === "undefined" &&
     typeof payload.data.image === "undefined" &&
     !payload.data.removeImage
   ) {
@@ -150,6 +166,8 @@ export async function PATCH(request: Request) {
     firstName?: string;
     lastName?: string;
     email?: string;
+    location?: string | null;
+    timezone?: string | null;
     emailVerified?: null;
     image?: string | null;
     name?: string;
@@ -166,6 +184,16 @@ export async function PATCH(request: Request) {
   if (payload.data.email) {
     updateData.email = payload.data.email;
     updateData.emailVerified = null;
+  }
+
+  if (typeof payload.data.location !== "undefined") {
+    const nextLocation = payload.data.location.trim();
+    updateData.location = nextLocation.length > 0 ? nextLocation : null;
+  }
+
+  if (typeof payload.data.timezone !== "undefined") {
+    const nextTimezone = payload.data.timezone.trim();
+    updateData.timezone = nextTimezone.length > 0 ? nextTimezone : null;
   }
 
   if (payload.data.removeImage) {

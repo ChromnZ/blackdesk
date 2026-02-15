@@ -13,6 +13,12 @@ import { useState } from "react";
 type NewsPayload = {
   category: NewsCategory;
   articles: NewsArticle[];
+  locale?: {
+    countryCode: string;
+    countryName: string;
+  };
+  forYouTopics?: string[];
+  personalizationSource?: "ai" | "heuristic" | null;
   fetchedAt?: string;
   error?: string;
 };
@@ -25,7 +31,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export function NewsView() {
-  const [activeTab, setActiveTab] = useState<NewsCategory>("local");
+  const [activeTab, setActiveTab] = useState<NewsCategory>("for_you");
 
   const {
     data,
@@ -54,7 +60,7 @@ export function NewsView() {
           Daily Briefing
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-textMuted">
-          Switch between categories and scan headlines quickly.
+          Your feed starts with AI-personalized topics based on recent agent chats.
         </p>
       </header>
 
@@ -62,6 +68,10 @@ export function NewsView() {
         <div className="flex flex-wrap gap-2">
           {NEWS_CATEGORIES.map((category) => {
             const isActive = category.key === activeTab;
+            const label =
+              category.key === "local" && data?.locale?.countryName
+                ? `${category.label} (${data.locale.countryName})`
+                : category.label;
 
             return (
               <button
@@ -75,7 +85,7 @@ export function NewsView() {
                     : "border-border bg-panelSoft text-textMuted hover:bg-panelSoft hover:text-textMain",
                 )}
               >
-                {category.label}
+                {label}
               </button>
             );
           })}
@@ -92,6 +102,15 @@ export function NewsView() {
         {categoryError && (
           <p className="mt-4 rounded-md border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-sm text-amber-300">
             {categoryError}
+          </p>
+        )}
+
+        {activeTab === "for_you" && data?.forYouTopics && data.forYouTopics.length > 0 && (
+          <p className="mt-4 rounded-md border border-border bg-panelSoft/70 px-3 py-2 text-xs text-textMuted">
+            {data.personalizationSource === "ai"
+              ? "For you topics (AI): "
+              : "For you topics: "}
+            {data.forYouTopics.join(", ")}
           </p>
         )}
 

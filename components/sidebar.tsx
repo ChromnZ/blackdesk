@@ -103,7 +103,7 @@ const PREFETCH_ENDPOINTS: Record<string, string[]> = {
   "/app/agent": ["/api/agent/settings", "/api/agent/conversations"],
   "/app/calendar": ["/api/events"],
   "/app/tasks": ["/api/tasks"],
-  "/app/news": ["/api/news?category=local"],
+  "/app/news": ["/api/news?category=for_you"],
 };
 
 type SidebarProps = {

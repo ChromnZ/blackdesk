@@ -15,10 +15,32 @@ type ProfileSettingsPayload = {
   firstName: string;
   lastName: string;
   email: string | null;
+  location: string | null;
+  timezone: string | null;
   image: string | null;
   googleLinked: boolean;
   hasPassword: boolean;
 };
+
+const FALLBACK_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Toronto",
+  "America/Sao_Paulo",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Madrid",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Colombo",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
 
 export function ProfileIntegrations() {
   const searchParams = useSearchParams();
@@ -28,6 +50,8 @@ export function ProfileIntegrations() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [location, setLocation] = useState("");
+  const [timezone, setTimezone] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(
     null,
@@ -45,6 +69,17 @@ export function ProfileIntegrations() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const linkedFromReturn = useMemo(() => linkedParam === "google", [linkedParam]);
+  const timezoneOptions = useMemo(() => {
+    const supportedValuesOf = Intl.supportedValuesOf as
+      | ((key: "timeZone") => string[])
+      | undefined;
+
+    if (typeof supportedValuesOf === "function") {
+      return supportedValuesOf("timeZone");
+    }
+
+    return FALLBACK_TIMEZONES;
+  }, []);
 
   useEffect(() => {
     async function loadProfile() {
@@ -68,6 +103,10 @@ export function ProfileIntegrations() {
         setFirstName(payload.firstName);
         setLastName(payload.lastName);
         setEmail(payload.email ?? "");
+        setLocation(payload.location ?? "");
+        setTimezone(
+          payload.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "",
+        );
         setImage(payload.image ?? null);
         setPendingImageDataUrl(null);
         setRemoveImage(false);
@@ -160,12 +199,16 @@ export function ProfileIntegrations() {
         firstName?: string;
         lastName?: string;
         email?: string;
+        location?: string;
+        timezone?: string;
         image?: string;
         removeImage?: boolean;
       } = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        location: location.trim(),
+        timezone: timezone.trim(),
       };
 
       if (pendingImageDataUrl) {
@@ -196,6 +239,8 @@ export function ProfileIntegrations() {
       setFirstName(payload.firstName);
       setLastName(payload.lastName);
       setEmail(payload.email ?? "");
+      setLocation(payload.location ?? "");
+      setTimezone(payload.timezone ?? "");
       setImage(payload.image ?? null);
       setPendingImageDataUrl(null);
       setRemoveImage(false);
@@ -291,7 +336,7 @@ export function ProfileIntegrations() {
       <div>
         <h2 className="font-display text-lg">Profile</h2>
         <p className="mt-1 text-sm text-textMuted">
-          Use your real name and email. Google linking keeps these synced.
+          Use your real name, location, and timezone so BlackDesk can personalize planning.
         </p>
       </div>
 
@@ -405,6 +450,40 @@ export function ProfileIntegrations() {
             className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="you@example.com"
           />
+        </div>
+
+        <div>
+          <label htmlFor="location" className="block text-sm text-textMuted">
+            Location
+          </label>
+          <input
+            id="location"
+            name="location"
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            placeholder="City, Country"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="timezone" className="block text-sm text-textMuted">
+            Timezone
+          </label>
+          <input
+            id="timezone"
+            name="timezone"
+            list="timezone-options"
+            value={timezone}
+            onChange={(event) => setTimezone(event.target.value)}
+            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            placeholder="e.g. Asia/Colombo"
+          />
+          <datalist id="timezone-options">
+            {timezoneOptions.map((item) => (
+              <option key={item} value={item} />
+            ))}
+          </datalist>
         </div>
 
         <button
