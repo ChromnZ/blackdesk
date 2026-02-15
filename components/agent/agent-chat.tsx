@@ -831,27 +831,201 @@ export function AgentChat() {
     void submit(lastUserMessage.content);
   }
 
+  const showWelcomeState = !isLoadingMessages && messages.length === 0;
+  const renderComposer = (variant: "welcome" | "chat") => (
+    <form
+      onSubmit={onSubmit}
+      className={cn(
+        "rounded-[26px] border bg-zinc-900/70 backdrop-blur",
+        variant === "welcome"
+          ? "w-full border-zinc-700/70 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+          : "mt-3 border-zinc-800/80 p-3 shadow-glow",
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          id="agent-provider"
+          value={config?.provider ?? "openai"}
+          disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
+          onChange={(event) => handleProviderChange(event.target.value)}
+          className="min-w-[130px] rounded-full border border-zinc-700/80 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
+          aria-label="LLM provider"
+        >
+          {linkedProviders.length === 0 ? (
+            <option value={config?.provider ?? "openai"}>No linked provider</option>
+          ) : (
+            linkedProviders.map((provider) => (
+              <option key={provider} value={provider}>
+                {PROVIDER_LABELS[provider]}
+              </option>
+            ))
+          )}
+        </select>
+
+        <select
+          id="agent-model"
+          value={config?.model ?? ""}
+          disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
+          onChange={(event) => handleModelChange(event.target.value)}
+          className="min-w-[160px] rounded-full border border-zinc-700/80 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
+          aria-label="LLM model"
+        >
+          {modelOptions.length === 0 ? (
+            <option value="">No models available</option>
+          ) : (
+            modelOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))
+          )}
+        </select>
+
+        <div className="relative ml-auto" ref={composerSettingsRef}>
+          <button
+            type="button"
+            onClick={() => setShowComposerSettings((current) => !current)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700/80 bg-zinc-900 text-textMuted transition hover:text-textMain"
+            aria-label="Chat settings"
+            title="Chat settings"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5h15M4.5 12h15M4.5 16.5h15" />
+              <circle cx="8" cy="7.5" r="1.5" />
+              <circle cx="16" cy="12" r="1.5" />
+              <circle cx="10" cy="16.5" r="1.5" />
+            </svg>
+          </button>
+
+          {showComposerSettings && (
+            <div className="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-zinc-700/80 bg-zinc-950 p-3 shadow-glow">
+              <p className="text-xs uppercase tracking-[0.2em] text-textMuted">
+                Chat settings
+              </p>
+              <label className="mt-3 flex items-center justify-between gap-3 text-sm text-textMain">
+                <span>Send with Enter</span>
+                <input
+                  type="checkbox"
+                  checked={sendOnEnter}
+                  onChange={(event) => setSendOnEnter(event.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-panel"
+                />
+              </label>
+              <label className="mt-2 flex items-center justify-between gap-3 text-sm text-textMain">
+                <span>Show timestamps</span>
+                <input
+                  type="checkbox"
+                  checked={showMessageTimes}
+                  onChange={(event) => setShowMessageTimes(event.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-panel"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleToggleVoiceCapture}
+          disabled={!hasLinkedAi || isSending}
+          className={cn(
+            "inline-flex h-9 w-9 items-center justify-center rounded-full border transition",
+            isRecording
+              ? "border-red-700/60 bg-red-900/30 text-red-300"
+              : "border-zinc-700/80 bg-zinc-900 text-textMuted hover:text-textMain",
+            (!hasLinkedAi || isSending) && "cursor-not-allowed opacity-60",
+          )}
+          aria-label={isRecording ? "Stop voice input" : "Start voice input"}
+          title={isRecording ? "Stop voice input" : "Start voice input"}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5a2.25 2.25 0 0 1 2.25 2.25v4.5a2.25 2.25 0 1 1-4.5 0v-4.5A2.25 2.25 0 0 1 12 4.5Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 10.5a5.25 5.25 0 1 0 10.5 0M12 15.75v3.75M9.75 19.5h4.5" />
+          </svg>
+        </button>
+      </div>
+
+      <textarea
+        ref={textareaRef}
+        rows={3}
+        value={
+          hasLinkedAi
+            ? input
+            : "No AI API key linked. Add one in Settings to start chatting."
+        }
+        onChange={(event) => {
+          if (hasLinkedAi) {
+            setInput(event.target.value);
+          }
+        }}
+        onKeyDown={onComposerKeyDown}
+        disabled={!hasLinkedAi || isSending}
+        placeholder="Message BlackDesk..."
+        aria-label="Chat input"
+        className={cn(
+          "mt-3 w-full resize-none bg-transparent px-1 py-1.5 text-sm text-textMain placeholder:text-textMuted disabled:cursor-not-allowed disabled:text-textMuted focus:outline-none",
+          variant === "welcome" && "min-h-[110px]",
+        )}
+      />
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {variant === "welcome" ? <span /> : (
+          <p className="text-xs text-textMuted">
+            {sendOnEnter
+              ? "Enter sends. Shift+Enter adds a new line."
+              : "Ctrl/Cmd+Enter sends. Enter adds a new line."}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={isSending || input.trim().length === 0 || !hasLinkedAi}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-accent/25 bg-accent text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="Send message"
+          title="Send"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m5.25 12 13.5-6.75-3 6.75 3 6.75L5.25 12Z" />
+          </svg>
+        </button>
+      </div>
+    </form>
+  );
+
   return (
     <section className="space-y-4">
-      <header>
-        <h1 className="font-display text-2xl font-semibold">AI Agent</h1>
-        <p className="mt-1 text-sm text-textMuted">
-          ChatGPT-style workspace with conversation history and model switching.
-        </p>
-      </header>
-
       {error && (
         <p className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-2 text-sm text-red-300">
           {error}
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="rounded-xl border border-border bg-panel p-3 shadow-glow">
+      <div className="grid gap-4 lg:grid-cols-[292px_minmax(0,1fr)]">
+        <aside className="flex h-[calc(100vh-13.5rem)] flex-col rounded-2xl border border-zinc-800/80 bg-zinc-950/65 p-3 shadow-glow backdrop-blur">
           <button
             type="button"
             onClick={() => void handleNewChat()}
-            className="w-full rounded-md border border-accent/25 bg-accent px-3 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
+            className="w-full rounded-lg border border-accent/25 bg-accent px-3 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
           >
             New chat
           </button>
@@ -865,17 +1039,17 @@ export function AgentChat() {
               value={conversationQuery}
               onChange={(event) => setConversationQuery(event.target.value)}
               placeholder="Search title or message"
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+              className="w-full rounded-lg border border-zinc-700/80 bg-zinc-900/70 px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             />
           </div>
 
-          <div className="mt-3 max-h-[62vh] space-y-1 overflow-y-auto pr-1">
+          <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
             {isLoadingConversations ? (
-              <p className="rounded-md border border-border bg-panelSoft/80 px-3 py-2 text-sm text-textMuted">
+              <p className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-textMuted">
                 Loading chats...
               </p>
             ) : filteredConversations.length === 0 ? (
-              <p className="rounded-md border border-border bg-panelSoft/80 px-3 py-2 text-sm text-textMuted">
+              <p className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-textMuted">
                 {conversationQuery.trim().length > 0
                   ? "No chats match your search."
                   : "No chats yet. Start with a message."}
@@ -887,10 +1061,10 @@ export function AgentChat() {
                   <div
                     key={conversation.id}
                     className={cn(
-                      "rounded-md border p-2 transition",
+                      "rounded-lg border p-2 transition",
                       isActive
-                        ? "border-accent/25 bg-accent/10"
-                        : "border-border bg-panelSoft/80",
+                        ? "border-accent/30 bg-accent/10"
+                        : "border-zinc-800 bg-zinc-900/70",
                     )}
                   >
                     <button
@@ -938,297 +1112,159 @@ export function AgentChat() {
           </div>
         </aside>
 
-        <div className="rounded-xl border border-border bg-panel p-3 shadow-glow sm:p-4">
-          <div className="mb-3 border-b border-border pb-3">
-            <p className="truncate text-sm font-semibold text-textMain">
-              {activeConversationTitle}
-            </p>
-            <p className="text-xs text-textMuted">
-              {messages.length > 0
-                ? `${messages.length} messages`
-                : "No messages yet"}
-            </p>
-          </div>
-
-          <p className="text-xs text-textMuted">
-            {isLoadingConfig
-              ? "Loading model settings..."
-              : config
-                ? `Using ${PROVIDER_LABELS[config.provider]} - ${config.model}`
-                : "Model settings unavailable."}
-          </p>
-
-          <div
-            ref={listRef}
-            className="mt-4 h-[52vh] min-h-[360px] space-y-3 overflow-y-auto rounded-lg border border-border bg-panelSoft p-3"
-          >
-            {isLoadingMessages ? (
-              <p className="text-sm text-textMuted">Loading messages...</p>
-            ) : messages.length === 0 ? (
-              <div className="rounded-md border border-border bg-panel px-3 py-3 text-sm text-textMuted">
-                Start a new conversation. I can answer questions, create tasks, and
-                create calendar events.
+        <div className="flex min-h-[calc(100vh-13.5rem)] flex-col rounded-2xl border border-zinc-800/80 bg-zinc-950/45 p-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:p-4">
+          {!showWelcomeState && (
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-textMain">
+                  {activeConversationTitle}
+                </p>
+                <p className="text-xs text-textMuted">
+                  {messages.length > 0
+                    ? `${messages.length} messages`
+                    : "No messages yet"}
+                </p>
               </div>
-            ) : (
-              messages.map((message) => {
-                const isUser = message.role === "user";
-                return (
-                  <div
-                    key={message.id}
-                    className={cn("flex", isUser ? "justify-end" : "justify-start")}
+              <p className="text-right text-xs text-textMuted">
+                {isLoadingConfig
+                  ? "Loading model settings..."
+                  : config
+                    ? `Using ${PROVIDER_LABELS[config.provider]} - ${config.model}`
+                    : "Model settings unavailable."}
+              </p>
+            </div>
+          )}
+
+          {showWelcomeState ? (
+            <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-3 pb-10 text-center">
+              <h2 className="text-[clamp(2.05rem,3.3vw,3.1rem)] font-semibold tracking-tight text-textMain">
+                What can I help with?
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-textMuted">
+                Start a chat to plan your day, create tasks, and schedule events.
+              </p>
+              <div className="mt-7 w-full max-w-3xl">{renderComposer("welcome")}</div>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => {
+                      setInput(prompt);
+                      void submit(prompt);
+                    }}
+                    disabled={isSending || !hasLinkedAi}
+                    className="rounded-full border border-zinc-700/80 bg-zinc-900/70 px-3 py-1.5 text-xs text-textMuted transition hover:bg-zinc-900 hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <div
-                      className={`group max-w-[90%] rounded-lg border px-3 py-2 text-sm sm:max-w-[80%] ${
-                        isUser
-                          ? "border-accent/25 bg-accent text-accentText"
-                          : "border-border bg-panel text-textMain"
-                      }`}
-                    >
-                      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.14em]">
-                        <span className={isUser ? "text-accentText/85" : "text-textMuted"}>
-                          {isUser ? "You" : "Assistant"}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {showMessageTimes && message.createdAt && (
-                            <span className={isUser ? "text-accentText/80" : "text-textMuted"}>
-                              {formatMessageDateTime(message.createdAt)}
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={listRef}
+                className="h-[52vh] min-h-[360px] flex-1 space-y-3 overflow-y-auto rounded-xl border border-zinc-800/80 bg-zinc-900/45 p-3"
+              >
+                {isLoadingMessages ? (
+                  <p className="text-sm text-textMuted">Loading messages...</p>
+                ) : (
+                  messages.map((message) => {
+                    const isUser = message.role === "user";
+                    return (
+                      <div
+                        key={message.id}
+                        className={cn("flex", isUser ? "justify-end" : "justify-start")}
+                      >
+                        <div
+                          className={`group max-w-[90%] rounded-lg border px-3 py-2 text-sm sm:max-w-[80%] ${
+                            isUser
+                              ? "border-accent/25 bg-accent text-accentText"
+                              : "border-zinc-800/90 bg-zinc-900 text-textMain"
+                          }`}
+                        >
+                          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.14em]">
+                            <span className={isUser ? "text-accentText/85" : "text-textMuted"}>
+                              {isUser ? "You" : "Assistant"}
                             </span>
+                            <div className="flex items-center gap-2">
+                              {showMessageTimes && message.createdAt && (
+                                <span className={isUser ? "text-accentText/80" : "text-textMuted"}>
+                                  {formatMessageDateTime(message.createdAt)}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleCopyMessage(message.id, message.content)
+                                }
+                                className={cn(
+                                  "rounded border px-1.5 py-0.5 text-[10px] normal-case tracking-normal transition",
+                                  isUser
+                                    ? "border-accentText/25 text-accentText hover:bg-accentText/15"
+                                    : "border-border text-textMuted hover:bg-panelSoft hover:text-textMain",
+                                )}
+                              >
+                                {copiedMessageId === message.id ? "Copied" : "Copy"}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          {message.meta && (
+                            <p
+                              className={cn(
+                                "mt-2 rounded border px-2 py-1 text-xs",
+                                isUser
+                                  ? "border-accentText/30 bg-accentText/10 text-accentText"
+                                  : "border-border bg-panelSoft text-textMuted",
+                              )}
+                            >
+                              {message.meta}
+                            </p>
                           )}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void handleCopyMessage(message.id, message.content)
-                            }
-                            className={cn(
-                              "rounded border px-1.5 py-0.5 text-[10px] normal-case tracking-normal transition",
-                              isUser
-                                ? "border-accentText/25 text-accentText hover:bg-accentText/15"
-                                : "border-border text-textMuted hover:bg-panelSoft hover:text-textMain",
-                            )}
-                          >
-                            {copiedMessageId === message.id ? "Copied" : "Copy"}
-                          </button>
                         </div>
                       </div>
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      {message.meta && (
-                        <p
-                          className={cn(
-                            "mt-2 rounded border px-2 py-1 text-xs",
-                            isUser
-                              ? "border-accentText/30 bg-accentText/10 text-accentText"
-                              : "border-border bg-panelSoft text-textMuted",
-                          )}
-                        >
-                          {message.meta}
-                        </p>
-                      )}
+                    );
+                  })
+                )}
+
+                {isSending && (
+                  <div className="flex justify-start">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-textMuted">
+                      Agent is thinking...
                     </div>
                   </div>
-                );
-              })
-            )}
-
-            {isSending && (
-              <div className="flex justify-start">
-                <div className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-textMuted">
-                  Agent is thinking...
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            {QUICK_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => {
-                  void submit(prompt);
-                }}
-                disabled={isSending || !hasLinkedAi}
-                className="rounded-md border border-border bg-panelSoft px-2.5 py-1 text-xs text-textMuted transition hover:bg-panel hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {prompt}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={handleRegenerate}
-              disabled={isSending || messages.length === 0 || !hasLinkedAi}
-              className="rounded-md border border-border bg-panelSoft px-2.5 py-1 text-xs text-textMuted transition hover:bg-panel hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Regenerate
-            </button>
-          </div>
-
-          <form
-            onSubmit={onSubmit}
-            className="mt-3 rounded-2xl border border-border bg-panelSoft/80 p-3 shadow-glow"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                id="agent-provider"
-                value={config?.provider ?? "openai"}
-                disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
-                onChange={(event) => handleProviderChange(event.target.value)}
-                className="min-w-[130px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
-                aria-label="LLM provider"
-              >
-                {linkedProviders.length === 0 ? (
-                  <option value={config?.provider ?? "openai"}>No linked provider</option>
-                ) : (
-                  linkedProviders.map((provider) => (
-                    <option key={provider} value={provider}>
-                      {PROVIDER_LABELS[provider]}
-                    </option>
-                  ))
-                )}
-              </select>
-
-              <select
-                id="agent-model"
-                value={config?.model ?? ""}
-                disabled={isLoadingConfig || isSwitchingModel || !config || !hasLinkedAi}
-                onChange={(event) => handleModelChange(event.target.value)}
-                className="min-w-[160px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
-                aria-label="LLM model"
-              >
-                {modelOptions.length === 0 ? (
-                  <option value="">No models available</option>
-                ) : (
-                  modelOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))
-                )}
-              </select>
-
-              <div className="relative ml-auto" ref={composerSettingsRef}>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => {
+                      void submit(prompt);
+                    }}
+                    disabled={isSending || !hasLinkedAi}
+                    className="rounded-md border border-zinc-700/80 bg-zinc-900/65 px-2.5 py-1 text-xs text-textMuted transition hover:bg-zinc-900 hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {prompt}
+                  </button>
+                ))}
                 <button
                   type="button"
-                  onClick={() => setShowComposerSettings((current) => !current)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-panel text-textMuted transition hover:text-textMain"
-                  aria-label="Chat settings"
-                  title="Chat settings"
+                  onClick={handleRegenerate}
+                  disabled={isSending || messages.length === 0 || !hasLinkedAi}
+                  className="rounded-md border border-zinc-700/80 bg-zinc-900/65 px-2.5 py-1 text-xs text-textMuted transition hover:bg-zinc-900 hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5h15M4.5 12h15M4.5 16.5h15" />
-                    <circle cx="8" cy="7.5" r="1.5" />
-                    <circle cx="16" cy="12" r="1.5" />
-                    <circle cx="10" cy="16.5" r="1.5" />
-                  </svg>
+                  Regenerate
                 </button>
-
-                {showComposerSettings && (
-                  <div className="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-border bg-panel p-3 shadow-glow">
-                    <p className="text-xs uppercase tracking-[0.2em] text-textMuted">
-                      Chat settings
-                    </p>
-                    <label className="mt-3 flex items-center justify-between gap-3 text-sm text-textMain">
-                      <span>Send with Enter</span>
-                      <input
-                        type="checkbox"
-                        checked={sendOnEnter}
-                        onChange={(event) => setSendOnEnter(event.target.checked)}
-                        className="h-4 w-4 rounded border-border bg-panel"
-                      />
-                    </label>
-                    <label className="mt-2 flex items-center justify-between gap-3 text-sm text-textMain">
-                      <span>Show timestamps</span>
-                      <input
-                        type="checkbox"
-                        checked={showMessageTimes}
-                        onChange={(event) => setShowMessageTimes(event.target.checked)}
-                        className="h-4 w-4 rounded border-border bg-panel"
-                      />
-                    </label>
-                  </div>
-                )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleToggleVoiceCapture}
-                disabled={!hasLinkedAi || isSending}
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-full border transition",
-                  isRecording
-                    ? "border-red-700/60 bg-red-900/30 text-red-300"
-                    : "border-border bg-panel text-textMuted hover:text-textMain",
-                  (!hasLinkedAi || isSending) && "cursor-not-allowed opacity-60",
-                )}
-                aria-label={isRecording ? "Stop voice input" : "Start voice input"}
-                title={isRecording ? "Stop voice input" : "Start voice input"}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5a2.25 2.25 0 0 1 2.25 2.25v4.5a2.25 2.25 0 1 1-4.5 0v-4.5A2.25 2.25 0 0 1 12 4.5Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 10.5a5.25 5.25 0 1 0 10.5 0M12 15.75v3.75M9.75 19.5h4.5" />
-                </svg>
-              </button>
-            </div>
-
-            <textarea
-              ref={textareaRef}
-              rows={3}
-              value={
-                hasLinkedAi
-                  ? input
-                  : "No AI API key linked. Add one in Settings to start chatting."
-              }
-              onChange={(event) => {
-                if (hasLinkedAi) {
-                  setInput(event.target.value);
-                }
-              }}
-              onKeyDown={onComposerKeyDown}
-              disabled={!hasLinkedAi || isSending}
-              placeholder="Message BlackDesk..."
-              aria-label="Chat input"
-              className="mt-3 w-full resize-none bg-transparent px-1 py-1.5 text-sm text-textMain placeholder:text-textMuted disabled:cursor-not-allowed disabled:text-textMuted focus:outline-none"
-            />
-
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <p className="text-xs text-textMuted">
-                {sendOnEnter
-                  ? "Enter sends. Shift+Enter adds a new line."
-                  : "Ctrl/Cmd+Enter sends. Enter adds a new line."}
-              </p>
-              <button
-                type="submit"
-                disabled={isSending || input.trim().length === 0 || !hasLinkedAi}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-accent/25 bg-accent text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Send message"
-                title="Send"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m5.25 12 13.5-6.75-3 6.75 3 6.75L5.25 12Z" />
-                </svg>
-              </button>
-            </div>
-          </form>
+              {renderComposer("chat")}
+            </>
+          )}
         </div>
       </div>
     </section>
