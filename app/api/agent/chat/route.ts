@@ -1,4 +1,11 @@
+import {
+  defaultModelForProvider,
+  isLlmProvider,
+  isValidModelForProvider,
+  type LlmProvider,
+} from "@/lib/llm-config";
 import { prisma } from "@/lib/prisma";
+import { decryptSecret } from "@/lib/secret";
 import { getAuthUserId } from "@/lib/session";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -36,6 +43,7 @@ const agentDecisionSchema = z.object({
 });
 
 type AgentDecision = z.infer<typeof agentDecisionSchema>;
+type ChatHistory = Array<{ role: "user" | "assistant"; content: string }>;
 
 function parseDate(value?: string | null) {
   if (!value) {
@@ -105,25 +113,50 @@ function buildSystemPrompt(nowIso: string) {
   ].join("\n");
 }
 
-async function requestDecisionFromOpenAI(args: {
-  message: string;
-  history: Array<{ role: "user" | "assistant"; content: string }>;
-}) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return null;
+function parseDecisionFromText(text: string) {
+  const attempt = text.trim();
+
+  try {
+    const parsedJson = JSON.parse(attempt);
+    const parsedDecision = agentDecisionSchema.safeParse(parsedJson);
+    if (parsedDecision.success) {
+      return parsedDecision.data;
+    }
+  } catch {
+    // continue
   }
 
-  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const start = attempt.indexOf("{");
+  const end = attempt.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try {
+      const parsedJson = JSON.parse(attempt.slice(start, end + 1));
+      const parsedDecision = agentDecisionSchema.safeParse(parsedJson);
+      if (parsedDecision.success) {
+        return parsedDecision.data;
+      }
+    } catch {
+      // ignore
+    }
+  }
 
+  return null;
+}
+
+async function requestDecisionFromOpenAI(args: {
+  apiKey: string;
+  model: string;
+  message: string;
+  history: ChatHistory;
+}) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${args.apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: args.model,
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
@@ -147,16 +180,137 @@ async function requestDecisionFromOpenAI(args: {
     return null;
   }
 
-  try {
-    const parsedJson = JSON.parse(content);
-    const parsedDecision = agentDecisionSchema.safeParse(parsedJson);
-    if (!parsedDecision.success) {
-      return null;
-    }
-    return parsedDecision.data;
-  } catch {
+  return parseDecisionFromText(content);
+}
+
+async function requestDecisionFromAnthropic(args: {
+  apiKey: string;
+  model: string;
+  message: string;
+  history: ChatHistory;
+}) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": args.apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: args.model,
+      max_tokens: 1024,
+      temperature: 0.2,
+      system: buildSystemPrompt(new Date().toISOString()),
+      messages: [
+        ...args.history.map((item) => ({
+          role: item.role,
+          content: item.content,
+        })),
+        { role: "user", content: args.message },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
     return null;
   }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
+
+  const text = payload.content?.find((part) => part.type === "text")?.text;
+  if (!text) {
+    return null;
+  }
+
+  return parseDecisionFromText(text);
+}
+
+async function requestDecisionFromGoogle(args: {
+  apiKey: string;
+  model: string;
+  message: string;
+  history: ChatHistory;
+}) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${args.model}:generateContent?key=${encodeURIComponent(args.apiKey)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: buildSystemPrompt(new Date().toISOString()) }],
+        },
+        generationConfig: {
+          temperature: 0.2,
+        },
+        contents: [
+          ...args.history.map((item) => ({
+            role: item.role === "assistant" ? "model" : "user",
+            parts: [{ text: item.content }],
+          })),
+          { role: "user", parts: [{ text: args.message }] },
+        ],
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+
+  const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    return null;
+  }
+
+  return parseDecisionFromText(text);
+}
+
+async function requestDecisionByProvider(args: {
+  provider: LlmProvider;
+  model: string;
+  apiKey: string | null;
+  message: string;
+  history: ChatHistory;
+}) {
+  if (!args.apiKey) {
+    return null;
+  }
+
+  if (args.provider === "openai") {
+    return requestDecisionFromOpenAI({
+      apiKey: args.apiKey,
+      model: args.model,
+      message: args.message,
+      history: args.history,
+    });
+  }
+
+  if (args.provider === "anthropic") {
+    return requestDecisionFromAnthropic({
+      apiKey: args.apiKey,
+      model: args.model,
+      message: args.message,
+      history: args.history,
+    });
+  }
+
+  return requestDecisionFromGoogle({
+    apiKey: args.apiKey,
+    model: args.model,
+    message: args.message,
+    history: args.history,
+  });
 }
 
 export async function POST(request: Request) {
@@ -179,7 +333,45 @@ export async function POST(request: Request) {
     const message = parsedRequest.data.message.trim();
     const history = parsedRequest.data.history ?? [];
 
-    let decision = await requestDecisionFromOpenAI({ message, history });
+    const userSettings = await prisma.userLlmSettings.findUnique({
+      where: { userId },
+      select: {
+        provider: true,
+        model: true,
+        openaiApiKeyEnc: true,
+        anthropicApiKeyEnc: true,
+        googleApiKeyEnc: true,
+      },
+    });
+
+    const provider: LlmProvider =
+      userSettings && isLlmProvider(userSettings.provider)
+        ? userSettings.provider
+        : "openai";
+
+    const model =
+      userSettings?.model && isValidModelForProvider(provider, userSettings.model)
+        ? userSettings.model
+        : defaultModelForProvider(provider);
+
+    const openaiUserKey = decryptSecret(userSettings?.openaiApiKeyEnc);
+    const anthropicUserKey = decryptSecret(userSettings?.anthropicApiKeyEnc);
+    const googleUserKey = decryptSecret(userSettings?.googleApiKeyEnc);
+
+    const apiKey =
+      provider === "openai"
+        ? openaiUserKey ?? process.env.OPENAI_API_KEY ?? null
+        : provider === "anthropic"
+          ? anthropicUserKey ?? process.env.ANTHROPIC_API_KEY ?? null
+          : googleUserKey ?? process.env.GOOGLE_API_KEY ?? null;
+
+    let decision = await requestDecisionByProvider({
+      provider,
+      model,
+      apiKey,
+      message,
+      history,
+    });
     let usedFallback = false;
 
     if (!decision) {
@@ -195,6 +387,8 @@ export async function POST(request: Request) {
             action: "reply",
             reply: "I need a valid task title before creating it.",
             usedFallback,
+            provider,
+            model,
           },
           { status: 200 },
         );
@@ -223,6 +417,8 @@ export async function POST(request: Request) {
           dueAt: task.dueAt,
         },
         usedFallback,
+        provider,
+        model,
       });
     }
 
@@ -234,6 +430,8 @@ export async function POST(request: Request) {
             action: "reply",
             reply: "I need a valid event title before creating it.",
             usedFallback,
+            provider,
+            model,
           },
           { status: 200 },
         );
@@ -266,6 +464,8 @@ export async function POST(request: Request) {
           endAt: eventRecord.endAt,
         },
         usedFallback,
+        provider,
+        model,
       });
     }
 
@@ -273,6 +473,8 @@ export async function POST(request: Request) {
       action: "reply",
       reply: decision.reply,
       usedFallback,
+      provider,
+      model,
     });
   } catch {
     return NextResponse.json(

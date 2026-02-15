@@ -1,4 +1,5 @@
 import { LogoutButton } from "@/components/logout-button";
+import { LlmSettings } from "@/components/settings/llm-settings";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 
@@ -35,6 +36,8 @@ export default async function SettingsPage() {
           <LogoutButton className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90" />
         </div>
       </div>
+
+      <LlmSettings />
     </section>
   );
 }

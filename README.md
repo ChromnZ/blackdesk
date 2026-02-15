@@ -19,10 +19,13 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB_NAM
 DIRECT_URL="postgresql://USER:PASSWORD@HOST.REGION.aws.neon.tech/DB_NAME?sslmode=require&connect_timeout=15"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-secret"
+ENCRYPTION_SECRET="use-a-long-random-secret"
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-4o-mini"
+ANTHROPIC_API_KEY=""
+GOOGLE_API_KEY=""
 ```
 
 ## Local Setup (Neon)
@@ -42,8 +45,13 @@ Open `http://localhost:3000`.
    - `DIRECT_URL` (Neon direct URL: non-pooler host)
    - `NEXTAUTH_URL` (your Vercel domain, e.g. `https://blackdesk.vercel.app`)
    - `NEXTAUTH_SECRET`
+   - `ENCRYPTION_SECRET`
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`
+   - Optional global LLM fallback keys:
+     - `OPENAI_API_KEY`
+     - `ANTHROPIC_API_KEY`
+     - `GOOGLE_API_KEY`
 3. Apply schema once to Neon from your machine:
    - `npm run db:push`
 4. Redeploy in Vercel.
@@ -93,8 +101,11 @@ npm run prisma:seed
 
 ## Notes
 
+- Users can configure their own LLM provider, model, and API keys in Settings.
+- Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
+- Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).
 - Agent can create tasks/events automatically from chat input.
-- If `OPENAI_API_KEY` is not set, the agent uses a limited fallback parser.
+- If no working LLM key is available, the agent uses a limited fallback parser.
 - All Calendar and Task operations are scoped by authenticated user ID.
 - Passwords are hashed with bcryptjs (10 rounds).
 - `/api/extract` is a stub endpoint for future AI extraction.
