@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { formatDisplayName, initialsFromName } from "@/lib/name-utils";
 import { useTheme } from "@/components/theme-provider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,7 +10,8 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 type ProfileMenuProps = {
   user: {
-    username: string;
+    firstName: string;
+    lastName: string;
     email?: string;
     image?: string | null;
   };
@@ -145,12 +147,12 @@ function UserAvatar({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={user.image}
-          alt={`${user.username} profile picture`}
+          alt={`${formatDisplayName(user.firstName, user.lastName, user.email ?? null)} profile picture`}
           className="h-full w-full object-cover"
           referrerPolicy="no-referrer"
         />
       ) : (
-        user.username.slice(0, 1).toUpperCase()
+        initialsFromName(user.firstName, user.lastName, user.email ?? null)
       )}
     </div>
   );
@@ -225,7 +227,9 @@ export function ProfileMenu({ user }: ProfileMenuProps) {
           <div className="flex items-center gap-3">
             <UserAvatar user={user} className="h-10 w-10 text-sm" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-textMain">{user.username}</p>
+              <p className="truncate text-sm font-semibold text-textMain">
+                {formatDisplayName(user.firstName, user.lastName, user.email ?? null)}
+              </p>
               <p className="truncate text-xs text-textMuted">{user.email ?? "No email"}</p>
             </div>
           </div>

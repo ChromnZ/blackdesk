@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 async function main() {
   const existing = await prisma.user.findUnique({
-    where: { username: "demo" },
+    where: { email: "demo@blackdesk.local" },
   });
 
   if (existing) {
@@ -15,14 +15,16 @@ async function main() {
 
   await prisma.user.create({
     data: {
+      firstName: "Demo",
+      lastName: "User",
       username: "demo",
       passwordHash,
-      name: "Demo User",
       email: "demo@blackdesk.local",
+      name: "Demo User",
     },
   });
 
-  console.log("Created demo user: demo / demo1234");
+  console.log("Created demo user: demo@blackdesk.local / demo1234");
 }
 
 main()

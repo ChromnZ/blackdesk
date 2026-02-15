@@ -12,6 +12,8 @@ model User {
   id                    String    @id @default(cuid())
   username              String    @unique
   usernameSetupComplete Boolean   @default(true)
+  firstName             String    @default("")
+  lastName              String    @default("")
   passwordHash          String?
   email                 String?   @unique
   name                  String?

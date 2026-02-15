@@ -14,14 +14,11 @@ export default async function ProtectedLayout({
     redirect("/auth/login");
   }
 
-  if (!session.user.usernameSetupComplete) {
-    redirect("/auth/complete-username");
-  }
-
   return (
     <AppShell
       user={{
-        username: session.user.username,
+        firstName: session.user.firstName,
+        lastName: session.user.lastName,
         email: session.user.email ?? undefined,
         image: session.user.image ?? null,
       }}

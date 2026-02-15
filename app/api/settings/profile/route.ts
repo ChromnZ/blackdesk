@@ -1,4 +1,5 @@
 import { authOptions } from "@/lib/auth";
+import { formatDisplayName } from "@/lib/name-utils";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -9,6 +10,8 @@ const IMAGE_DATA_URL_REGEX =
 
 const updateProfileSchema = z
   .object({
+    firstName: z.string().trim().min(1, "First name is required.").max(60).optional(),
+    lastName: z.string().trim().min(1, "Last name is required.").max(60).optional(),
     email: z
       .string()
       .trim()
@@ -34,7 +37,8 @@ async function loadProfileState(userId: string) {
     prisma.user.findUnique({
       where: { id: userId },
       select: {
-        username: true,
+        firstName: true,
+        lastName: true,
         email: true,
         image: true,
       },
@@ -55,7 +59,8 @@ async function loadProfileState(userId: string) {
   }
 
   return {
-    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
     email: user.email,
     image: user.image,
     googleLinked: Boolean(googleAccount),
@@ -91,6 +96,8 @@ export async function PATCH(request: Request) {
   }
 
   if (
+    typeof payload.data.firstName === "undefined" &&
+    typeof payload.data.lastName === "undefined" &&
     typeof payload.data.email === "undefined" &&
     typeof payload.data.image === "undefined" &&
     !payload.data.removeImage
@@ -115,11 +122,39 @@ export async function PATCH(request: Request) {
     }
   }
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  });
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  const nextFirstName = payload.data.firstName ?? currentUser.firstName;
+  const nextLastName = payload.data.lastName ?? currentUser.lastName;
+  const nextEmail = payload.data.email ?? currentUser.email;
+
   const updateData: {
+    firstName?: string;
+    lastName?: string;
     email?: string;
     emailVerified?: null;
     image?: string | null;
+    name?: string;
   } = {};
+
+  if (typeof payload.data.firstName !== "undefined") {
+    updateData.firstName = payload.data.firstName;
+  }
+
+  if (typeof payload.data.lastName !== "undefined") {
+    updateData.lastName = payload.data.lastName;
+  }
 
   if (payload.data.email) {
     updateData.email = payload.data.email;
@@ -131,6 +166,8 @@ export async function PATCH(request: Request) {
   } else if (payload.data.image) {
     updateData.image = payload.data.image;
   }
+
+  updateData.name = formatDisplayName(nextFirstName, nextLastName, nextEmail);
 
   await prisma.user.update({
     where: { id: session.user.id },

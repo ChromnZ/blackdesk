@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 type AppShellProps = {
   children: React.ReactNode;
   user: {
-    username: string;
+    firstName: string;
+    lastName: string;
     email?: string;
     image?: string | null;
   };

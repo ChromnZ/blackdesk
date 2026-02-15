@@ -8,7 +8,7 @@ export default function HelpPage() {
 
       <p className="text-sm text-textMuted">
         For account, billing, or integration issues, send details to support and include
-        your username plus the provider/model you are using.
+        your email plus the provider/model you are using.
       </p>
 
       <div className="rounded-lg border border-border bg-panelSoft p-4 text-sm text-textMain">

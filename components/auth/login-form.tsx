@@ -11,11 +11,15 @@ function mapAuthError(error: string | null) {
   }
 
   if (error === "CredentialsSignin") {
-    return "Invalid username or password.";
+    return "Invalid email or password.";
   }
 
   if (error === "OAuthAccountNotLinked") {
     return "This email is already linked to a credentials account.";
+  }
+
+  if (error === "GoogleEmailRequired") {
+    return "Google account does not have an email address available.";
   }
 
   return "Unable to authenticate right now. Try again.";
@@ -25,7 +29,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +47,7 @@ export function LoginForm() {
     setIsLoading(true);
 
     const result = await signIn("credentials", {
-      username: username.trim().toLowerCase(),
+      email: email.trim().toLowerCase(),
       password,
       redirect: false,
       callbackUrl: "/app",
@@ -52,7 +56,7 @@ export function LoginForm() {
     setIsLoading(false);
 
     if (!result || result.error) {
-      setError("Invalid username or password.");
+      setError("Invalid email or password.");
       return;
     }
 
@@ -85,18 +89,19 @@ export function LoginForm() {
 
       <form className="mt-5 space-y-4" onSubmit={handleCredentialsSubmit}>
         <div>
-          <label htmlFor="username" className="mb-1 block text-sm text-textMuted">
-            Username
+          <label htmlFor="email" className="mb-1 block text-sm text-textMuted">
+            Email
           </label>
           <input
-            id="username"
-            name="username"
-            autoComplete="username"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
             required
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
-            placeholder="demo"
+            placeholder="you@example.com"
           />
         </div>
 

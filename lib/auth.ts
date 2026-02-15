@@ -4,25 +4,9 @@ import type { NextAuthOptions } from "next-auth";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-
-async function buildTemporaryUsername() {
-  let candidate = `u${randomBytes(8).toString("hex")}`;
-
-  while (true) {
-    const exists = await prisma.user.findUnique({
-      where: { username: candidate },
-      select: { id: true },
-    });
-
-    if (!exists) {
-      return candidate;
-    }
-
-    candidate = `u${randomBytes(8).toString("hex")}`;
-  }
-}
+import { generateInternalUsername } from "@/lib/internal-username";
+import { deriveNameParts, formatDisplayName } from "@/lib/name-utils";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
@@ -30,14 +14,23 @@ const adapter: Adapter = {
   ...prismaAdapter,
   async createUser(data: Omit<AdapterUser, "id">) {
     const email = data.email?.toLowerCase() ?? null;
-    const username = await buildTemporaryUsername();
+    const names = deriveNameParts({
+      fullName: data.name,
+      email,
+    });
+
+    const username = await generateInternalUsername(
+      email ?? `${names.firstName}${names.lastName}`,
+    );
 
     return prisma.user.create({
       data: {
         username,
-        usernameSetupComplete: false,
+        usernameSetupComplete: true,
+        firstName: names.firstName,
+        lastName: names.lastName,
         email,
-        name: data.name ?? null,
+        name: formatDisplayName(names.firstName, names.lastName, email),
         image: data.image ?? null,
         emailVerified: data.emailVerified ?? null,
       },
@@ -58,19 +51,19 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const username = credentials?.username?.trim().toLowerCase();
+        const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
-        if (!username || !password) {
+        if (!email || !password) {
           return null;
         }
 
         const user = await prisma.user.findUnique({
-          where: { username },
+          where: { email },
         });
 
         if (!user?.passwordHash) {
@@ -84,10 +77,11 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
-          name: user.name ?? user.username,
+          name: formatDisplayName(user.firstName, user.lastName, user.email),
           email: user.email,
           image: user.image,
-          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
         };
       },
     }),
@@ -112,40 +106,56 @@ export const authOptions: NextAuthOptions = {
         typeof rawProfile?.email === "string"
           ? rawProfile.email.trim().toLowerCase()
           : null;
+
+      if (!profileEmail) {
+        return "/auth/login?error=GoogleEmailRequired";
+      }
+
       const profileImage =
         typeof rawProfile?.picture === "string"
           ? rawProfile.picture
           : typeof rawProfile?.image === "string"
             ? rawProfile.image
             : null;
+
+      const profileGivenName =
+        typeof rawProfile?.given_name === "string" ? rawProfile.given_name : null;
+      const profileFamilyName =
+        typeof rawProfile?.family_name === "string" ? rawProfile.family_name : null;
       const profileName =
         typeof rawProfile?.name === "string" ? rawProfile.name : null;
 
-      const updateData: {
-        email?: string;
-        image?: string;
-        name?: string;
-      } = {};
+      const names = deriveNameParts({
+        firstName: profileGivenName,
+        lastName: profileFamilyName,
+        fullName: profileName,
+        email: profileEmail,
+      });
 
-      if (profileEmail) {
-        updateData.email = profileEmail;
-      }
+      const updateData: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        name: string;
+        image?: string;
+      } = {
+        email: profileEmail,
+        firstName: names.firstName,
+        lastName: names.lastName,
+        name: formatDisplayName(names.firstName, names.lastName, profileEmail),
+      };
+
       if (profileImage) {
         updateData.image = profileImage;
       }
-      if (profileName) {
-        updateData.name = profileName;
-      }
 
-      if (Object.keys(updateData).length > 0) {
-        try {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: updateData,
-          });
-        } catch {
-          // Do not block login if profile sync fails.
-        }
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      } catch {
+        // Do not block login if profile sync fails.
       }
 
       return true;
@@ -153,27 +163,27 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
-        token.username = user.username ?? token.username;
+        token.firstName = user.firstName ?? token.firstName;
+        token.lastName = user.lastName ?? token.lastName;
         token.email = user.email;
         token.picture = user.image ?? token.picture;
-        token.usernameSetupComplete = user.usernameSetupComplete ?? token.usernameSetupComplete;
       }
 
       if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
           select: {
-            username: true,
+            firstName: true,
+            lastName: true,
             email: true,
             image: true,
-            usernameSetupComplete: true,
           },
         });
-        token.username = dbUser?.username ?? token.username;
+
+        token.firstName = dbUser?.firstName ?? token.firstName;
+        token.lastName = dbUser?.lastName ?? token.lastName;
         token.email = dbUser?.email ?? token.email;
         token.picture = dbUser?.image ?? token.picture;
-        token.usernameSetupComplete =
-          dbUser?.usernameSetupComplete ?? token.usernameSetupComplete;
       }
 
       return token;
@@ -181,8 +191,13 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
-        session.user.username = token.username ?? session.user.name ?? "user";
-        session.user.usernameSetupComplete = Boolean(token.usernameSetupComplete);
+        session.user.firstName = token.firstName ?? "";
+        session.user.lastName = token.lastName ?? "";
+        session.user.name = formatDisplayName(
+          token.firstName,
+          token.lastName,
+          token.email ?? null,
+        );
         session.user.email = token.email ?? null;
         session.user.image =
           typeof token.picture === "string" ? token.picture : null;
@@ -191,4 +206,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-

@@ -1,11 +1,13 @@
 "use client";
 
+import { initialsFromName } from "@/lib/name-utils";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type ProfileSettingsPayload = {
-  username: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
   image: string | null;
   googleLinked: boolean;
@@ -18,7 +20,8 @@ export function ProfileIntegrations() {
   const linkedParam = searchParams.get("linked");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(
@@ -47,13 +50,14 @@ export function ProfileIntegrations() {
           | ProfileSettingsPayload
           | { error?: string };
 
-        if (!response.ok || !("username" in payload)) {
+        if (!response.ok || !("firstName" in payload)) {
           setError(("error" in payload && payload.error) || "Unable to load profile settings.");
           setLoading(false);
           return;
         }
 
-        setUsername(payload.username);
+        setFirstName(payload.firstName);
+        setLastName(payload.lastName);
         setEmail(payload.email ?? "");
         setImage(payload.image ?? null);
         setPendingImageDataUrl(null);
@@ -71,7 +75,7 @@ export function ProfileIntegrations() {
 
   useEffect(() => {
     if (linkedFromReturn) {
-      setSuccess("Google account linked.");
+      setSuccess("Google account linked. Profile synced from Google.");
     }
   }, [linkedFromReturn]);
 
@@ -131,10 +135,14 @@ export function ProfileIntegrations() {
 
     try {
       const body: {
+        firstName?: string;
+        lastName?: string;
         email?: string;
         image?: string;
         removeImage?: boolean;
       } = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
       };
 
@@ -157,13 +165,14 @@ export function ProfileIntegrations() {
         | ProfileSettingsPayload
         | { error?: string };
 
-      if (!response.ok || !("username" in payload)) {
+      if (!response.ok || !("firstName" in payload)) {
         setError(("error" in payload && payload.error) || "Unable to update profile.");
         setSavingProfile(false);
         return;
       }
 
-      setUsername(payload.username);
+      setFirstName(payload.firstName);
+      setLastName(payload.lastName);
       setEmail(payload.email ?? "");
       setImage(payload.image ?? null);
       setPendingImageDataUrl(null);
@@ -199,7 +208,7 @@ export function ProfileIntegrations() {
       <div>
         <h2 className="font-display text-lg">Profile</h2>
         <p className="mt-1 text-sm text-textMuted">
-          Username is permanent. You can update your email and photo.
+          Use your real name and email. Google linking keeps these synced.
         </p>
       </div>
 
@@ -215,12 +224,6 @@ export function ProfileIntegrations() {
         </p>
       )}
 
-      <div className="rounded-md border border-border bg-panelSoft/80 px-3 py-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-textMuted">Username</p>
-        <p className="mt-1 text-sm text-textMain">{username}</p>
-        <p className="mt-1 text-xs text-textMuted">Lowercase letters and numbers only, cannot be changed.</p>
-      </div>
-
       <div className="rounded-md border border-border bg-panelSoft/80 p-3">
         <p className="text-xs uppercase tracking-[0.18em] text-textMuted">
           Profile Picture
@@ -231,12 +234,12 @@ export function ProfileIntegrations() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={image}
-                alt={`${username} profile picture`}
+                alt={`${firstName} ${lastName} profile picture`}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              username.slice(0, 1).toUpperCase()
+              initialsFromName(firstName, lastName, email)
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -267,21 +270,57 @@ export function ProfileIntegrations() {
         </div>
       </div>
 
-      <form className="space-y-2" onSubmit={handleSaveProfile}>
-        <label htmlFor="email" className="block text-sm text-textMuted">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
-          placeholder="you@example.com"
-        />
+      <form className="space-y-3" onSubmit={handleSaveProfile}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="first-name" className="block text-sm text-textMuted">
+              First name
+            </label>
+            <input
+              id="first-name"
+              name="first-name"
+              required
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+              placeholder="First name"
+            />
+          </div>
+          <div>
+            <label htmlFor="last-name" className="block text-sm text-textMuted">
+              Last name
+            </label>
+            <input
+              id="last-name"
+              name="last-name"
+              required
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+              placeholder="Last name"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm text-textMuted">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-1 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            placeholder="you@example.com"
+          />
+        </div>
+
         <button
           type="submit"
           disabled={savingProfile}
@@ -301,7 +340,7 @@ export function ProfileIntegrations() {
               <p className="text-sm text-textMain">Google</p>
               <p className="mt-1 text-xs text-textMuted">
                 {googleLinked
-                  ? "Connected (email and photo sync from Google on login/link)"
+                  ? "Connected (name, email, and photo sync from Google on login/link)"
                   : "Not connected"}
               </p>
             </div>

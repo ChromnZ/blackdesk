@@ -110,6 +110,51 @@ const PROVIDER_LABELS: Record<LlmProvider, string> = {
   google: "Google (Gemini)",
 };
 
+type RecognitionAlternativeLike = {
+  transcript: string;
+};
+
+type RecognitionResultLike = {
+  isFinal: boolean;
+  length: number;
+  [index: number]: RecognitionAlternativeLike;
+};
+
+type RecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<RecognitionResultLike>;
+};
+
+type BrowserRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: RecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type BrowserRecognitionConstructorLike = new () => BrowserRecognitionLike;
+
+function getRecognitionConstructor() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const browserWindow = window as typeof window & {
+    webkitSpeechRecognition?: BrowserRecognitionConstructorLike;
+    SpeechRecognition?: BrowserRecognitionConstructorLike;
+  };
+
+  return (
+    browserWindow.SpeechRecognition ??
+    browserWindow.webkitSpeechRecognition ??
+    null
+  );
+}
+
 function id() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -179,9 +224,15 @@ export function AgentChat() {
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [showComposerSettings, setShowComposerSettings] = useState(false);
+  const [sendOnEnter, setSendOnEnter] = useState(true);
+  const [showMessageTimes, setShowMessageTimes] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerSettingsRef = useRef<HTMLDivElement | null>(null);
+  const recognitionRef = useRef<BrowserRecognitionLike | null>(null);
 
   useEffect(() => {
     const container = listRef.current;
@@ -190,6 +241,40 @@ export function AgentChat() {
     }
     container.scrollTop = container.scrollHeight;
   }, [messages, isSending]);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      const root = composerSettingsRef.current;
+      if (!root) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof Node && !root.contains(target)) {
+        setShowComposerSettings(false);
+      }
+    }
+
+    function handleEscape(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowComposerSettings(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
 
   const loadSettings = useCallback(async () => {
     setIsLoadingConfig(true);
@@ -612,7 +697,21 @@ export function AgentChat() {
   }
 
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (!hasLinkedAi) {
+      return;
+    }
+
+    if (sendOnEnter && event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void submit(input);
+      return;
+    }
+
+    if (
+      !sendOnEnter &&
+      event.key === "Enter" &&
+      (event.metaKey || event.ctrlKey)
+    ) {
       event.preventDefault();
       void submit(input);
     }
@@ -628,6 +727,61 @@ export function AgentChat() {
     } catch {
       setError("Unable to copy message.");
     }
+  }
+
+  function handleToggleVoiceCapture() {
+    if (!hasLinkedAi || isSending) {
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const RecognitionConstructor = getRecognitionConstructor();
+    if (!RecognitionConstructor) {
+      setError("Voice input is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new RecognitionConstructor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        if (result?.[0]?.transcript) {
+          transcript += result[0].transcript;
+        }
+      }
+
+      const next = transcript.trim();
+      if (next.length > 0) {
+        setInput((current) => `${current} ${next}`.trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error !== "aborted") {
+        setError("Unable to capture voice input.");
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    setError(null);
+    setIsRecording(true);
+    recognition.start();
   }
 
   function handleRegenerate() {
@@ -757,61 +911,13 @@ export function AgentChat() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[180px]">
-              <label htmlFor="agent-provider" className="mb-1 block text-xs text-textMuted">
-                LLM Provider
-              </label>
-              <select
-                id="agent-provider"
-                value={config?.provider ?? "openai"}
-                disabled={isLoadingConfig || isSwitchingModel || !config}
-                onChange={(event) => handleProviderChange(event.target.value)}
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain disabled:opacity-60"
-              >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Claude (Anthropic)</option>
-                <option value="google">Google (Gemini)</option>
-              </select>
-            </div>
-
-            <div className="min-w-[220px]">
-              <label htmlFor="agent-model" className="mb-1 block text-xs text-textMuted">
-                Model
-              </label>
-              <select
-                id="agent-model"
-                value={config?.model ?? ""}
-                disabled={isLoadingConfig || isSwitchingModel || !config}
-                onChange={(event) => handleModelChange(event.target.value)}
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain disabled:opacity-60"
-              >
-                {config &&
-                  config.availableModels[config.provider].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="min-w-[220px]">
-              <p className="text-xs text-textMuted">
-                {isLoadingConfig
-                  ? "Loading model settings..."
-                  : config
-                    ? `Using ${PROVIDER_LABELS[config.provider]} - ${config.model}`
-                    : "Model settings unavailable."}
-              </p>
-            </div>
-          </div>
-
-          {!isLoadingConfig && !hasLinkedAi && (
-            <p className="mt-3 rounded-md border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-sm text-amber-300">
-              No AI provider is linked to your account. Add at least one API key in
-              Settings.
-            </p>
-          )}
+          <p className="text-xs text-textMuted">
+            {isLoadingConfig
+              ? "Loading model settings..."
+              : config
+                ? `Using ${PROVIDER_LABELS[config.provider]} - ${config.model}`
+                : "Model settings unavailable."}
+          </p>
 
           <div
             ref={listRef}
@@ -844,7 +950,7 @@ export function AgentChat() {
                           {isUser ? "You" : "Assistant"}
                         </span>
                         <div className="flex items-center gap-2">
-                          {message.createdAt && (
+                          {showMessageTimes && message.createdAt && (
                             <span className={isUser ? "text-accentText/80" : "text-textMuted"}>
                               {formatMessageDateTime(message.createdAt)}
                             </span>
@@ -917,27 +1023,161 @@ export function AgentChat() {
             </button>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-3 space-y-2">
+          <form
+            onSubmit={onSubmit}
+            className="mt-3 rounded-2xl border border-border bg-panelSoft/80 p-3 shadow-glow"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                id="agent-provider"
+                value={config?.provider ?? "openai"}
+                disabled={isLoadingConfig || isSwitchingModel || !config}
+                onChange={(event) => handleProviderChange(event.target.value)}
+                className="min-w-[130px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
+                aria-label="LLM provider"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Claude</option>
+                <option value="google">Gemini</option>
+              </select>
+
+              <select
+                id="agent-model"
+                value={config?.model ?? ""}
+                disabled={isLoadingConfig || isSwitchingModel || !config}
+                onChange={(event) => handleModelChange(event.target.value)}
+                className="min-w-[160px] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-textMain disabled:opacity-60"
+                aria-label="LLM model"
+              >
+                {config &&
+                  config.availableModels[config.provider].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+              </select>
+
+              <div className="relative ml-auto" ref={composerSettingsRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowComposerSettings((current) => !current)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-panel text-textMuted transition hover:text-textMain"
+                  aria-label="Chat settings"
+                  title="Chat settings"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5h15M4.5 12h15M4.5 16.5h15" />
+                    <circle cx="8" cy="7.5" r="1.5" />
+                    <circle cx="16" cy="12" r="1.5" />
+                    <circle cx="10" cy="16.5" r="1.5" />
+                  </svg>
+                </button>
+
+                {showComposerSettings && (
+                  <div className="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-border bg-panel p-3 shadow-glow">
+                    <p className="text-xs uppercase tracking-[0.2em] text-textMuted">
+                      Chat settings
+                    </p>
+                    <label className="mt-3 flex items-center justify-between gap-3 text-sm text-textMain">
+                      <span>Send with Enter</span>
+                      <input
+                        type="checkbox"
+                        checked={sendOnEnter}
+                        onChange={(event) => setSendOnEnter(event.target.checked)}
+                        className="h-4 w-4 rounded border-border bg-panel"
+                      />
+                    </label>
+                    <label className="mt-2 flex items-center justify-between gap-3 text-sm text-textMain">
+                      <span>Show timestamps</span>
+                      <input
+                        type="checkbox"
+                        checked={showMessageTimes}
+                        onChange={(event) => setShowMessageTimes(event.target.checked)}
+                        className="h-4 w-4 rounded border-border bg-panel"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleVoiceCapture}
+                disabled={!hasLinkedAi || isSending}
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full border transition",
+                  isRecording
+                    ? "border-red-700/60 bg-red-900/30 text-red-300"
+                    : "border-border bg-panel text-textMuted hover:text-textMain",
+                  (!hasLinkedAi || isSending) && "cursor-not-allowed opacity-60",
+                )}
+                aria-label={isRecording ? "Stop voice input" : "Start voice input"}
+                title={isRecording ? "Stop voice input" : "Start voice input"}
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5a2.25 2.25 0 0 1 2.25 2.25v4.5a2.25 2.25 0 1 1-4.5 0v-4.5A2.25 2.25 0 0 1 12 4.5Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 10.5a5.25 5.25 0 1 0 10.5 0M12 15.75v3.75M9.75 19.5h4.5" />
+                </svg>
+              </button>
+            </div>
+
             <textarea
               ref={textareaRef}
               rows={3}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
+              value={
+                hasLinkedAi
+                  ? input
+                  : "No AI API key linked. Add one in Settings to start chatting."
+              }
+              onChange={(event) => {
+                if (hasLinkedAi) {
+                  setInput(event.target.value);
+                }
+              }}
               onKeyDown={onComposerKeyDown}
-              placeholder="Message BlackDesk... (Enter to send, Shift+Enter for newline)"
+              disabled={!hasLinkedAi || isSending}
+              placeholder="Message BlackDesk..."
               aria-label="Chat input"
-              className="w-full resize-y rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+              className="mt-3 w-full resize-none bg-transparent px-1 py-1.5 text-sm text-textMain placeholder:text-textMuted disabled:cursor-not-allowed disabled:text-textMuted focus:outline-none"
             />
-            <div className="flex items-center justify-between gap-2">
+
+            <div className="mt-2 flex items-center justify-between gap-2">
               <p className="text-xs text-textMuted">
-                Enter sends. Shift+Enter adds a new line.
+                {sendOnEnter
+                  ? "Enter sends. Shift+Enter adds a new line."
+                  : "Ctrl/Cmd+Enter sends. Enter adds a new line."}
               </p>
               <button
                 type="submit"
                 disabled={isSending || input.trim().length === 0 || !hasLinkedAi}
-                className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-accent/25 bg-accent text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Send message"
+                title="Send"
               >
-                Send
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m5.25 12 13.5-6.75-3 6.75 3 6.75L5.25 12Z" />
+                </svg>
               </button>
             </div>
           </form>

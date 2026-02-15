@@ -80,7 +80,7 @@ For a migration-first workflow later, you can switch from `db push` to:
 
 Create a local demo credentials user:
 
-- Username: `demo`
+- Email: `demo@blackdesk.local`
 - Password: `demo1234`
 
 Run:
@@ -94,7 +94,6 @@ npm run prisma:seed
 - `/` landing page
 - `/auth/login` login
 - `/auth/register` registration
-- `/auth/complete-username` one-time username setup for new Google sign-ins
 - `/app` dashboard home
 - `/app/calendar` calendar
 - `/app/tasks` tasks
@@ -104,12 +103,11 @@ npm run prisma:seed
 
 ## Notes
 
-- Usernames are unique, lowercase, and locked after setup.
-- Credentials registration requires email + username + password.
-- New Google users are prompted to choose a permanent username before entering the app.
+- Credentials registration requires first name + last name + email + password.
+- Credentials login uses email + password.
 - Settings includes Integrations so credentials users can link Google login.
 - Email and profile picture can be updated from Settings.
-- When Google is linked/logged in, BlackDesk syncs Google email and profile photo.
+- When Google is linked/logged in, BlackDesk syncs first name, last name, email, and profile photo.
 - Theme selector is available in Settings and the sidebar footer (light/dark/system).
 - Users configure AI API keys in Settings, then choose provider/model from the AI Agent page.
 - AI Agent includes conversation history with multi-chat threads (rename/delete/new chat).

@@ -1,21 +1,25 @@
 import bcrypt from "bcryptjs";
+import { generateInternalUsername } from "@/lib/internal-username";
+import { formatDisplayName } from "@/lib/name-utils";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-const USERNAME_REGEX = /^[a-z0-9]{3,24}$/;
+const IMAGE_DATA_URL_REGEX =
+  /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i;
 
 const registerSchema = z
   .object({
-    username: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .refine((value) => USERNAME_REGEX.test(value), {
-        message:
-          "Username must be 3-24 characters and use only lowercase letters and numbers.",
-      }),
+    firstName: z.string().trim().min(1, "First name is required.").max(60),
+    lastName: z.string().trim().min(1, "Last name is required.").max(60),
     email: z.string().trim().toLowerCase().email("A valid email is required."),
+    image: z
+      .string()
+      .max(3_000_000, "Profile image is too large.")
+      .refine((value) => IMAGE_DATA_URL_REGEX.test(value), {
+        message: "Invalid image format. Use PNG, JPG, WEBP, or GIF.",
+      })
+      .optional(),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
@@ -36,19 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { username, email, password } = payload.data;
-
-    const existingUsername = await prisma.user.findUnique({
-      where: { username },
-      select: { id: true },
-    });
-
-    if (existingUsername) {
-      return NextResponse.json(
-        { error: "Username already exists." },
-        { status: 409 },
-      );
-    }
+    const { firstName, lastName, email, image, password } = payload.data;
 
     const existingEmail = await prisma.user.findUnique({
       where: { email },
@@ -63,13 +55,17 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const username = await generateInternalUsername(email);
 
     await prisma.user.create({
       data: {
+        firstName,
+        lastName,
         username,
         email,
+        image: image ?? null,
         passwordHash,
-        name: username,
+        name: formatDisplayName(firstName, lastName, email),
       },
     });
 

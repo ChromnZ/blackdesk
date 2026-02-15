@@ -4,21 +4,21 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      username: string;
-      usernameSetupComplete: boolean;
+      firstName: string;
+      lastName: string;
     } & DefaultSession["user"];
   }
 
   interface User {
-    username?: string;
-    usernameSetupComplete?: boolean;
+    firstName?: string;
+    lastName?: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    username?: string;
-    usernameSetupComplete?: boolean;
+    firstName?: string;
+    lastName?: string;
   }
 }
 

@@ -171,10 +171,7 @@ export function Sidebar({
         )}
       >
         <div className={cn("mb-6 px-1", collapsed ? "text-center" : "")}>
-          <p className={cn("font-display text-xs uppercase tracking-[0.25em] text-textMuted", collapsed ? "hidden" : "block")}>
-            Workspace
-          </p>
-          <p className="mt-2 font-display text-2xl font-semibold">{collapsed ? "B" : "BlackDesk"}</p>
+          <p className="font-display text-2xl font-semibold">{collapsed ? "B" : "BlackDesk"}</p>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto">
@@ -190,8 +187,7 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             className={cn(
-              "hidden items-center rounded-md border border-border bg-panelSoft text-xs text-textMuted transition hover:bg-panel hover:text-textMain md:flex",
-              collapsed ? "justify-center px-2 py-2.5" : "gap-2 px-2.5 py-2",
+              "hidden h-9 w-9 items-center justify-center rounded-md border border-border bg-panelSoft text-textMuted transition hover:bg-panel hover:text-textMain md:flex",
             )}
             aria-label={collapsed ? "Expand panel" : "Hide panel"}
             title={collapsed ? "Expand panel" : "Hide panel"}
@@ -210,7 +206,6 @@ export function Sidebar({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 5.25 15 12l-6.75 6.75" />
               )}
             </svg>
-            {!collapsed && <span>Hide panel</span>}
           </button>
         </div>
       </aside>

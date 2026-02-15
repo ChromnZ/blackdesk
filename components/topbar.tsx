@@ -5,7 +5,8 @@ import { ProfileMenu } from "@/components/profile-menu";
 type TopbarProps = {
   onMenuClick: () => void;
   user: {
-    username: string;
+    firstName: string;
+    lastName: string;
     email?: string;
     image?: string | null;
   };
