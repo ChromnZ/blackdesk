@@ -1,9 +1,15 @@
 "use client";
 
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export function ThemeSelector({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className={compact ? "w-full" : "max-w-xs"}>
@@ -15,7 +21,7 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
       </label>
       <select
         id={compact ? "theme-select-compact" : "theme-select"}
-        value={theme}
+        value={mounted ? theme : "system"}
         onChange={(event) =>
           setTheme(event.target.value as "light" | "dark" | "system")
         }

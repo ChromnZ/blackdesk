@@ -1,6 +1,8 @@
 import { LlmSettings } from "@/components/settings/llm-settings";
 import { ProfileIntegrations } from "@/components/settings/profile-integrations";
 import { ThemeSelector } from "@/components/theme-selector";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Separator } from "@/components/ui/Separator";
 
 export default function SettingsPage() {
   return (
@@ -10,15 +12,16 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-textMuted">Profile, integrations, and AI configuration.</p>
       </header>
 
-      <div className="rounded-lg border border-border bg-panel p-5 shadow-glow">
-        <h2 className="font-display text-lg">Appearance</h2>
-        <p className="mt-1 text-sm text-textMuted">
-          Switch between light, dark, or system theme.
-        </p>
-        <div className="mt-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Switch between light, dark, or system theme.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
           <ThemeSelector />
-        </div>
-      </div>
+          <Separator className="mt-4" />
+        </CardContent>
+      </Card>
 
       <ProfileIntegrations />
       <LlmSettings />

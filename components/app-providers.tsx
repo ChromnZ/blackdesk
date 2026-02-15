@@ -1,6 +1,6 @@
 "use client";
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SWRConfig } from "swr";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {

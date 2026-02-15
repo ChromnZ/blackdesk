@@ -1,7 +1,7 @@
 "use client";
 
 import { ConsoleSidebar } from "@/components/console/Sidebar";
-import { ConsoleTopbar } from "@/components/console/Topbar";
+import { Topbar } from "@/components/nav/Topbar";
 import { useEffect, useState, type ReactNode } from "react";
 
 type ConsoleShellProps = {
@@ -41,9 +41,10 @@ export function ConsoleShell({ activeNavKey, user, children }: ConsoleShellProps
       />
 
       <div className="min-h-screen min-w-0 flex-1">
-        <ConsoleTopbar
+        <Topbar
           onMenuClick={() => setMobileSidebarOpen(true)}
           user={user}
+          title="BlackDesk"
         />
         <main className="min-h-[calc(100vh-56px)] bg-[#070708] p-4 md:p-6">
           {children}

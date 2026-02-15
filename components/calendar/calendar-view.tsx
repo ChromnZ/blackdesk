@@ -1,6 +1,10 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Separator } from "@/components/ui/Separator";
 import { swrFetcher } from "@/lib/swr-fetcher";
 import { toLocalInputValue } from "@/lib/utils";
 import type {
@@ -232,13 +236,12 @@ export function CalendarView() {
           <p className="text-sm text-textMuted">Private events with drag-and-drop scheduling.</p>
         </div>
 
-        <button
-          type="button"
+        <Button
           onClick={() => openCreateModal()}
-          className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
+          variant="primary"
         >
           New event
-        </button>
+        </Button>
       </div>
 
       {displayError && (
@@ -247,7 +250,7 @@ export function CalendarView() {
         </p>
       )}
 
-      <div className="rounded-xl border border-border bg-panel p-3 shadow-glow sm:p-4">
+      <Card className="p-3 sm:p-4">
         {isLoading && events.length === 0 ? (
           <p className="py-16 text-center text-sm text-textMuted">Loading calendar...</p>
         ) : (
@@ -271,7 +274,7 @@ export function CalendarView() {
             }}
           />
         )}
-      </div>
+      </Card>
 
       <Modal
         title={form.id ? "Edit event" : "Create event"}
@@ -280,30 +283,27 @@ export function CalendarView() {
         footer={
           <>
             {form.id && (
-              <button
-                type="button"
+              <Button
                 onClick={() => void deleteEvent()}
                 disabled={isSaving}
-                className="rounded-md border border-red-700/50 bg-red-900/20 px-4 py-2 text-sm text-red-300 transition hover:bg-red-900/35 disabled:cursor-not-allowed disabled:opacity-60"
+                variant="danger"
               >
                 Delete
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
               onClick={() => setModalOpen(false)}
-              className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => void saveEvent()}
               disabled={isSaving}
-              className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+              variant="primary"
             >
               {isSaving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </>
         }
       >
@@ -318,23 +318,24 @@ export function CalendarView() {
             <label htmlFor="event-title" className="mb-1 block text-sm text-textMuted">
               Title
             </label>
-            <input
+            <Input
               id="event-title"
               required
               value={form.title}
               onChange={(event) =>
                 setForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
+
+          <Separator />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="event-start" className="mb-1 block text-sm text-textMuted">
                 Start
               </label>
-              <input
+              <Input
                 id="event-start"
                 type="datetime-local"
                 required
@@ -342,7 +343,6 @@ export function CalendarView() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, startAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
 
@@ -350,7 +350,7 @@ export function CalendarView() {
               <label htmlFor="event-end" className="mb-1 block text-sm text-textMuted">
                 End
               </label>
-              <input
+              <Input
                 id="event-end"
                 type="datetime-local"
                 required
@@ -358,7 +358,6 @@ export function CalendarView() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, endAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
           </div>

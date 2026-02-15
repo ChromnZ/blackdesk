@@ -1,5 +1,8 @@
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Separator } from "@/components/ui/Separator";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -47,59 +50,54 @@ export default async function DashboardPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-6">
-      <header className="rounded-xl border border-border bg-panel p-6 shadow-glow">
+      <Card className="rounded-2xl">
+        <CardHeader>
         <p className="text-xs uppercase tracking-[0.28em] text-textMuted">Home</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
-          Dashboard
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-textMuted">
+          <CardTitle className="mt-2 text-3xl">Dashboard</CardTitle>
+          <CardDescription className="mt-2 max-w-2xl">
           Everything starts here. Use AI Agent for quick capture, then manage your
           timeline and execution in Calendar and Tasks.
-        </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href="/app/agent"
-            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
-          >
-            Open AI Agent
-          </Link>
-          <Link
-            href="/app/tasks"
-            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
-          >
-            View Tasks
-          </Link>
-          <Link
-            href="/app/calendar"
-            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
-          >
-            View Calendar
-          </Link>
-          <Link
-            href="/app/news"
-            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
-          >
-            View News
-          </Link>
+            <Button asChild variant="primary">
+              <Link href="/app/agent">Open AI Agent</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/app/tasks">View Tasks</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/app/calendar">View Calendar</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/app/news">View News</Link>
+            </Button>
         </div>
-      </header>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-panel p-5">
+        <Card>
+          <CardContent className="p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-textMuted">Open Tasks</p>
           <p className="mt-2 font-display text-3xl font-semibold">{openTasks}</p>
           <p className="mt-2 text-sm text-textMuted">Tasks still in todo or doing.</p>
-        </div>
-        <div className="rounded-lg border border-border bg-panel p-5">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
           <p className="text-xs uppercase tracking-[0.18em] text-textMuted">
             Upcoming Events
           </p>
           <p className="mt-2 font-display text-3xl font-semibold">{upcomingEvents}</p>
           <p className="mt-2 text-sm text-textMuted">Scheduled for the next 7 days.</p>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="rounded-lg border border-border bg-panel p-5">
+      <Card>
+        <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg">Recently Updated Tasks</h2>
           <Link
@@ -109,6 +107,7 @@ export default async function DashboardPage() {
             Open Tasks
           </Link>
         </div>
+          <Separator className="mt-3" />
 
         {recentTasks.length === 0 ? (
           <p className="mt-4 rounded-md border border-border bg-panelSoft/80 px-3 py-4 text-sm text-textMuted">
@@ -129,7 +128,8 @@ export default async function DashboardPage() {
             ))}
           </ul>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

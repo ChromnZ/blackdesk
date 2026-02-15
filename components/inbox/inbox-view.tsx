@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Separator } from "@/components/ui/Separator";
 import { useCallback, useEffect, useState } from "react";
 
 type InboxItem = {
@@ -110,41 +113,48 @@ export function InboxView() {
         </p>
       )}
 
-      <div className="rounded-xl border border-border bg-panel p-4 shadow-glow sm:p-5">
+      <Card>
+        <CardHeader>
+          <CardTitle>Dump anything</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 sm:p-5">
         <label htmlFor="inbox-content" className="mb-2 block text-sm text-textMuted">
-          Dump anything
+            Capture quick notes
         </label>
         <textarea
           id="inbox-content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          className="min-h-48 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+          className="min-h-48 w-full rounded-xl border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
           placeholder="Ideas, reminders, rough notes..."
         />
+          <Separator className="mt-4" />
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
+          <Button
             onClick={() => void addInboxItem()}
             disabled={isSaving}
-            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="primary"
           >
             {isSaving ? "Saving..." : "Add to inbox"}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => void triggerExtractStub()}
-            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+            variant="outline"
           >
             Extract tasks/events (soon)
-          </button>
+          </Button>
         </div>
 
         {extractMessage && <p className="mt-3 text-sm text-textMuted">{extractMessage}</p>}
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-xl border border-border bg-panel p-4 shadow-glow sm:p-5">
-        <h2 className="font-display text-lg">Recent items</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent items</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 sm:p-5">
 
         {isLoading ? (
           <p className="mt-4 text-sm text-textMuted">Loading inbox...</p>
@@ -157,19 +167,20 @@ export function InboxView() {
                 <p className="whitespace-pre-wrap text-sm text-textMain">{item.content}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-textMuted">
                   <span>{new Date(item.createdAt).toLocaleString()}</span>
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => void deleteItem(item.id)}
-                    className="rounded-md border border-red-700/50 bg-red-900/20 px-2.5 py-1 text-red-300 transition hover:bg-red-900/35"
+                    variant="danger"
+                    size="sm"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

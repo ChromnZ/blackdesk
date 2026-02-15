@@ -4,26 +4,26 @@
 
 :root {
   color-scheme: light;
-  --color-bg: 246 248 252;
+  --color-bg: 250 250 250;
   --color-panel: 255 255 255;
-  --color-panel-soft: 239 244 250;
-  --color-border: 203 213 225;
-  --color-text-main: 15 23 42;
-  --color-text-muted: 71 85 105;
-  --color-accent: 15 23 42;
-  --color-accent-text: 248 250 252;
+  --color-panel-soft: 244 244 245;
+  --color-border: 228 228 231;
+  --color-text-main: 24 24 27;
+  --color-text-muted: 113 113 122;
+  --color-accent: 24 24 27;
+  --color-accent-text: 250 250 250;
 }
 
 html.dark {
   color-scheme: dark;
-  --color-bg: 3 7 18;
-  --color-panel: 9 14 28;
-  --color-panel-soft: 17 24 39;
-  --color-border: 51 65 85;
-  --color-text-main: 226 232 240;
-  --color-text-muted: 148 163 184;
-  --color-accent: 226 232 240;
-  --color-accent-text: 15 23 42;
+  --color-bg: 7 7 8;
+  --color-panel: 12 12 13;
+  --color-panel-soft: 24 24 27;
+  --color-border: 46 46 51;
+  --color-text-main: 244 244 245;
+  --color-text-muted: 161 161 170;
+  --color-accent: 250 250 250;
+  --color-accent-text: 9 9 11;
 }
 
 * {
@@ -33,11 +33,13 @@ html.dark {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 10% -20%, rgb(var(--color-panel-soft) / 0.7), transparent 60%),
-    radial-gradient(900px 480px at 90% -35%, rgb(var(--color-panel-soft) / 0.55), transparent 62%),
+    radial-gradient(1200px 600px at 10% -20%, rgb(var(--color-panel-soft) / 0.45), transparent 60%),
+    radial-gradient(900px 480px at 90% -35%, rgb(var(--color-panel-soft) / 0.35), transparent 62%),
     rgb(var(--color-bg) / 1);
   color: rgb(var(--color-text-main) / 1);
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -66,7 +68,14 @@ body {
 }
 
 ::selection {
-  background: rgb(var(--color-accent) / 0.2);
+  background: rgb(var(--color-accent) / 0.18);
+  color: rgb(var(--color-accent-text) / 1);
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 a,

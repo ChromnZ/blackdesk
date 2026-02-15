@@ -2,7 +2,6 @@
 
 import { ProfileMenu } from "@/components/profile-menu";
 import { Menu } from "lucide-react";
-import Link from "next/link";
 
 type ConsoleTopbarProps = {
   onMenuClick: () => void;
@@ -32,18 +31,6 @@ export function ConsoleTopbar({ onMenuClick, user }: ConsoleTopbarProps) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Link
-            href="/app/help"
-            className="rounded-md border border-zinc-800 bg-zinc-900/70 px-2.5 py-1.5 text-xs text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-100"
-          >
-            Docs
-          </Link>
-          <Link
-            href="/app/agent"
-            className="rounded-md border border-zinc-700 bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-white"
-          >
-            Start building
-          </Link>
           <ProfileMenu user={user} />
         </div>
       </div>

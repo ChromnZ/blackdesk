@@ -1,6 +1,10 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Separator } from "@/components/ui/Separator";
 import { swrFetcher } from "@/lib/swr-fetcher";
 import { toLocalInputValue } from "@/lib/utils";
 import useSWR from "swr";
@@ -236,20 +240,22 @@ export function TasksView() {
         </p>
       )}
 
-      <div className="rounded-xl border border-border bg-panel p-4 shadow-glow sm:p-5">
-        <h2 className="font-display text-lg">Create task</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Create task</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 sm:p-5">
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label htmlFor="task-title" className="mb-1 block text-sm text-textMuted">
               Title
             </label>
-            <input
+            <Input
               id="task-title"
               value={createForm.title}
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               placeholder="Task title"
             />
           </div>
@@ -258,14 +264,13 @@ export function TasksView() {
             <label htmlFor="task-due" className="mb-1 block text-sm text-textMuted">
               Due date
             </label>
-            <input
+            <Input
               id="task-due"
               type="datetime-local"
               value={createForm.dueAt}
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, dueAt: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
 
@@ -282,7 +287,7 @@ export function TasksView() {
                   priority: event.target.value as "" | TaskPriority,
                 }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+              className="h-10 w-full rounded-xl border border-border bg-panelSoft px-3 text-sm text-textMain"
             >
               <option value="">None</option>
               <option value="low">Low</option>
@@ -302,24 +307,29 @@ export function TasksView() {
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-xl border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               placeholder="Optional notes"
             />
           </div>
         </div>
 
-        <button
-          type="button"
+          <Separator className="mt-4" />
+        <Button
           onClick={() => void createTask()}
           disabled={isSaving}
-          className="mt-4 rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+          variant="primary"
+          className="mt-4"
         >
           {isSaving ? "Saving..." : "Add task"}
-        </button>
-      </div>
+        </Button>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-xl border border-border bg-panel p-4 shadow-glow sm:p-5">
-        <h2 className="font-display text-lg">Your tasks</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your tasks</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 sm:p-5">
 
         {isLoading && tasks.length === 0 ? (
           <p className="mt-4 text-sm text-textMuted">Loading tasks...</p>
@@ -340,34 +350,35 @@ export function TasksView() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => void toggleDone(task)}
-                      className="rounded-md border border-border bg-panel px-3 py-1.5 text-xs text-textMain transition hover:bg-panelSoft"
+                      variant="outline"
+                      size="sm"
                     >
                       {task.status === "done" ? "Undo" : "Mark done"}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
                       onClick={() => startEditing(task)}
-                      className="rounded-md border border-border bg-panel px-3 py-1.5 text-xs text-textMain transition hover:bg-panelSoft"
+                      variant="outline"
+                      size="sm"
                     >
                       Edit
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
                       onClick={() => void deleteTask(task.id)}
-                      className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-900/35"
+                      variant="danger"
+                      size="sm"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       <Modal
         title="Edit task"
@@ -375,21 +386,19 @@ export function TasksView() {
         onClose={() => setEditingTaskId(null)}
         footer={
           <>
-            <button
-              type="button"
+            <Button
               onClick={() => setEditingTaskId(null)}
-              className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => void saveTaskEdit()}
               disabled={isSaving}
-              className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+              variant="primary"
             >
               {isSaving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </>
         }
       >
@@ -398,13 +407,12 @@ export function TasksView() {
             <label htmlFor="edit-task-title" className="mb-1 block text-sm text-textMuted">
               Title
             </label>
-            <input
+            <Input
               id="edit-task-title"
               value={editForm.title}
               onChange={(event) =>
                 setEditForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
 
@@ -413,14 +421,13 @@ export function TasksView() {
               <label htmlFor="edit-task-due" className="mb-1 block text-sm text-textMuted">
                 Due date
               </label>
-              <input
+              <Input
                 id="edit-task-due"
                 type="datetime-local"
                 value={editForm.dueAt}
                 onChange={(event) =>
                   setEditForm((current) => ({ ...current, dueAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
 
@@ -437,7 +444,7 @@ export function TasksView() {
                     priority: event.target.value as "" | TaskPriority,
                   }))
                 }
-                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+                className="h-10 w-full rounded-xl border border-border bg-panelSoft px-3 text-sm text-textMain"
               >
                 <option value="">None</option>
                 <option value="low">Low</option>
@@ -460,7 +467,7 @@ export function TasksView() {
                   status: event.target.value as TaskStatus,
                 }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+              className="h-10 w-full rounded-xl border border-border bg-panelSoft px-3 text-sm text-textMain"
             >
               <option value="todo">To do</option>
               <option value="doing">Doing</option>
@@ -479,7 +486,7 @@ export function TasksView() {
               onChange={(event) =>
                 setEditForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-xl border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
         </div>

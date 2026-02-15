@@ -20,11 +20,13 @@ const config: Config = {
         accentText: "rgb(var(--color-accent-text) / <alpha-value>)",
       },
       boxShadow: {
-        glow: "0 0 0 1px rgb(var(--color-border) / 0.6), 0 12px 32px rgb(2 6 23 / 0.08)",
+        glow: "0 0 0 1px rgb(var(--color-border) / 0.6), 0 12px 32px rgb(0 0 0 / 0.28)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "sans-serif"],
-        body: ["var(--font-body)", "sans-serif"],
+        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        body: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
       },
     },
   },

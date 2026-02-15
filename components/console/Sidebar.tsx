@@ -7,15 +7,9 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Headphones,
   Home,
-  ImageIcon,
-  Inbox,
-  MessageSquare,
   Newspaper,
   Settings,
-  Sparkles,
-  Video,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -63,47 +57,10 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         href: "/app/news",
       },
       {
-        key: "inbox",
-        label: "Inbox",
-        icon: <Inbox className="h-4 w-4" />,
-        href: "/app/inbox",
-      },
-      {
         key: "settings",
         label: "Settings",
         icon: <Settings className="h-4 w-4" />,
         href: "/app/settings",
-      },
-    ],
-  },
-  {
-    label: "Create",
-    items: [
-      {
-        key: "chat",
-        label: "Chat",
-        icon: <MessageSquare className="h-4 w-4" />,
-        href: "/app/agent",
-      },
-      {
-        key: "agent-builder",
-        label: "Agent Builder",
-        icon: <Bot className="h-4 w-4" />,
-        href: "/app/agent",
-      },
-      { key: "audio", label: "Audio", icon: <Headphones className="h-4 w-4" /> },
-      { key: "images", label: "Images", icon: <ImageIcon className="h-4 w-4" /> },
-      { key: "videos", label: "Videos", icon: <Video className="h-4 w-4" /> },
-    ],
-  },
-  {
-    label: "Optimize",
-    items: [
-      {
-        key: "fine-tuning",
-        label: "Fine-tuning",
-        icon: <Sparkles className="h-4 w-4" />,
-        href: "/app/calendar",
       },
     ],
   },
@@ -245,39 +202,6 @@ export function ConsoleSidebar({
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
-
-          {collapsed && (
-            <Link
-              href="/app/settings"
-              className="mt-2 hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Link>
-          )}
-
-          {collapsed && (
-            <Link
-              href="/app/agent"
-              className="mt-2 hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
-              aria-label="Agent builder"
-              title="Agent builder"
-            >
-              <Bot className="h-4 w-4" />
-            </Link>
-          )}
-
-          {collapsed && (
-            <Link
-              href="/app"
-              className="mt-2 hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
-              aria-label="Workspace"
-              title="Workspace"
-            >
-              <Home className="h-4 w-4" />
-            </Link>
-          )}
         </div>
       </aside>
     </>
