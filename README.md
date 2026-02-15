@@ -98,6 +98,7 @@ npm run prisma:seed
 - `/app` dashboard home
 - `/app/calendar` calendar
 - `/app/tasks` tasks
+- `/app/news` tabbed news section
 - `/app/agent` AI agent chat
 - `/app/settings` settings
 

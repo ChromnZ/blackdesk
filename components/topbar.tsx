@@ -6,28 +6,25 @@ type TopbarProps = {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-black/95 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full items-center px-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Toggle sidebar"
-            onClick={onMenuClick}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-panel text-textMain transition hover:bg-panelSoft md:hidden"
+    <header className="sticky top-0 z-20 border-b border-border bg-black/95 backdrop-blur md:hidden">
+      <div className="mx-auto flex h-14 w-full items-center px-4">
+        <button
+          type="button"
+          aria-label="Toggle sidebar"
+          onClick={onMenuClick}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-panel text-textMain transition hover:bg-panelSoft"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <span className="font-display text-lg font-semibold tracking-tight">BlackDesk</span>
-        </div>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
       </div>
     </header>
   );

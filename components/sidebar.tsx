@@ -13,6 +13,7 @@ const PRIMARY_NAV_ITEMS = [
 const SECONDARY_NAV_ITEMS = [
   { href: "/app/calendar", label: "Calendar" },
   { href: "/app/tasks", label: "Tasks" },
+  { href: "/app/news", label: "News" },
 ];
 
 type SidebarProps = {
@@ -50,7 +51,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-border bg-panel px-4 py-6 transition-transform md:static md:z-0 md:translate-x-0",
+          "fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-border bg-panel px-4 pb-0 pt-6 transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -59,7 +60,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
           <p className="mt-2 font-display text-2xl font-semibold">BlackDesk</p>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto">
+        <nav className="flex-1 space-y-1 overflow-y-auto pb-4">
           {PRIMARY_NAV_ITEMS.map((item) => {
             const isActive = isActivePath(pathname, item.href);
 
@@ -103,7 +104,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-border pt-4">
+        <div className="mt-auto border-t border-border py-4">
           <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-black/40 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-textMain">

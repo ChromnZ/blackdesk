@@ -75,6 +75,12 @@ export default async function DashboardPage() {
           >
             View Calendar
           </Link>
+          <Link
+            href="/app/news"
+            className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+          >
+            View News
+          </Link>
         </div>
       </header>
 
