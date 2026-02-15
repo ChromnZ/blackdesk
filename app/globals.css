@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  border-color: #1f1f1f;
+}
+
+body {
+  min-height: 100vh;
+  background: #000000;
+  color: #f5f5f5;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black;
+}
+
+.fc {
+  --fc-border-color: #1f1f1f;
+  --fc-page-bg-color: #0a0a0a;
+  --fc-neutral-bg-color: #0a0a0a;
+  --fc-list-event-hover-bg-color: #111111;
+  --fc-now-indicator-color: #f5f5f5;
+  --fc-button-bg-color: #111111;
+  --fc-button-border-color: #2a2a2a;
+  --fc-button-hover-bg-color: #1b1b1b;
+  --fc-button-hover-border-color: #3a3a3a;
+  --fc-button-active-bg-color: #242424;
+  --fc-button-active-border-color: #4b4b4b;
+  --fc-event-bg-color: #f5f5f5;
+  --fc-event-border-color: #f5f5f5;
+  --fc-event-text-color: #111111;
+}
+
+.fc .fc-toolbar-title {
+  @apply font-display text-lg text-textMain;
+}
+
+.fc .fc-button {
+  @apply rounded border text-xs uppercase tracking-wider;
+}
+
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-timegrid-slot-label-cushion {
+  @apply text-sm text-textMuted;
+}
+
+.fc .fc-day-today {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
