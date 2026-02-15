@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 
 type NavItem = {
@@ -98,6 +98,14 @@ const SECONDARY_NAV_ITEMS: NavItem[] = [
   },
 ];
 
+const PREFETCH_ENDPOINTS: Record<string, string[]> = {
+  "/app": ["/api/tasks", "/api/events"],
+  "/app/agent": ["/api/agent/settings", "/api/agent/conversations"],
+  "/app/calendar": ["/api/events"],
+  "/app/tasks": ["/api/tasks"],
+  "/app/news": ["/api/news?category=local"],
+};
+
 type SidebarProps = {
   open: boolean;
   collapsed: boolean;
@@ -120,6 +128,16 @@ export function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function prefetchDataForRoute(href: string) {
+    const endpoints = PREFETCH_ENDPOINTS[href] ?? [];
+    for (const endpoint of endpoints) {
+      void fetch(endpoint).catch(() => {
+        // Best effort prefetch.
+      });
+    }
+  }
 
   function renderNavItem(item: NavItem) {
     const isActive = isActivePath(pathname, item.href);
@@ -130,6 +148,14 @@ export function Sidebar({
         href={item.href}
         title={collapsed ? item.label : undefined}
         onClick={onClose}
+        onMouseEnter={() => {
+          router.prefetch(item.href);
+          prefetchDataForRoute(item.href);
+        }}
+        onFocus={() => {
+          router.prefetch(item.href);
+          prefetchDataForRoute(item.href);
+        }}
         className={cn(
           "group flex items-center rounded-md border text-sm transition",
           collapsed ? "justify-center px-2 py-2.5" : "gap-2.5 px-3 py-2.5",

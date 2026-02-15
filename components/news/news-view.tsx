@@ -5,11 +5,15 @@ import {
   type NewsArticle,
   type NewsCategory,
 } from "@/lib/news";
+import { swrFetcher } from "@/lib/swr-fetcher";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
+import { useState } from "react";
 
 type NewsPayload = {
+  category: NewsCategory;
   articles: NewsArticle[];
+  fetchedAt?: string;
   error?: string;
 };
 
@@ -22,77 +26,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 export function NewsView() {
   const [activeTab, setActiveTab] = useState<NewsCategory>("local");
-  const [articlesByCategory, setArticlesByCategory] = useState<
-    Partial<Record<NewsCategory, NewsArticle[]>>
-  >({});
-  const [errorByCategory, setErrorByCategory] = useState<
-    Partial<Record<NewsCategory, string>>
-  >({});
-  const [isLoadingCategory, setIsLoadingCategory] = useState<NewsCategory | null>(
-    null,
-  );
-  const loadedCategoriesRef = useRef<Set<NewsCategory>>(new Set());
 
-  const fetchCategory = useCallback(async (category: NewsCategory, force = false) => {
-    if (!force && loadedCategoriesRef.current.has(category)) {
-      return;
-    }
-
-    setIsLoadingCategory(category);
-    setErrorByCategory((current) => {
-      const next = { ...current };
-      delete next[category];
-      return next;
-    });
-
-    try {
-      const response = await fetch(`/api/news?category=${category}`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as NewsPayload | { error?: string };
-
-      if (!response.ok || !("articles" in payload)) {
-        setErrorByCategory((current) => ({
-          ...current,
-          [category]:
-            ("error" in payload && payload.error) || "Unable to load this feed.",
-        }));
-        return;
-      }
-
-      setArticlesByCategory((current) => ({
-        ...current,
-        [category]: payload.articles,
-      }));
-      loadedCategoriesRef.current.add(category);
-
-      if (payload.error) {
-        setErrorByCategory((current) => ({
-          ...current,
-          [category]: payload.error,
-        }));
-      }
-    } catch {
-      setErrorByCategory((current) => ({
-        ...current,
-        [category]: "Unable to load this feed.",
-      }));
-    } finally {
-      setIsLoadingCategory((current) => (current === category ? null : current));
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchCategory(activeTab);
-  }, [activeTab, fetchCategory]);
-
-  const articles = useMemo(
-    () => articlesByCategory[activeTab] ?? [],
-    [activeTab, articlesByCategory],
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR<NewsPayload>(
+    `/api/news?category=${activeTab}`,
+    swrFetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+      keepPreviousData: true,
+    },
   );
 
-  const categoryError = errorByCategory[activeTab];
-  const isLoading = isLoadingCategory === activeTab;
+  const articles = data?.articles ?? [];
+  const categoryError = data?.error ?? error?.message ?? null;
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-5">
@@ -130,10 +82,10 @@ export function NewsView() {
 
           <button
             type="button"
-            onClick={() => void fetchCategory(activeTab, true)}
+            onClick={() => void mutate()}
             className="ml-auto rounded-md border border-border bg-panelSoft px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-textMuted transition hover:bg-panelSoft hover:text-textMain"
           >
-            Refresh
+            {isValidating ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
@@ -143,7 +95,7 @@ export function NewsView() {
           </p>
         )}
 
-        {isLoading ? (
+        {isLoading && !data ? (
           <div className="mt-4 space-y-3">
             {Array.from({ length: 6 }).map((_, index) => (
               <div

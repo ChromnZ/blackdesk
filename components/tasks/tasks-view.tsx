@@ -1,8 +1,10 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { swrFetcher } from "@/lib/swr-fetcher";
 import { toLocalInputValue } from "@/lib/utils";
-import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
+import { useState } from "react";
 
 type TaskPriority = "low" | "med" | "high";
 type TaskStatus = "todo" | "doing" | "done";
@@ -50,44 +52,35 @@ function formatDueDate(value: string | null) {
 }
 
 export function TasksView() {
-  const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [actionError, setActionError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<TaskForm>(emptyTaskForm());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<TaskForm>(emptyTaskForm());
-
   const [isSaving, setSaving] = useState(false);
 
-  const fetchTasks = useCallback(async () => {
-    setIsLoading(true);
+  const {
+    data: tasksData,
+    error: tasksError,
+    isLoading,
+    mutate,
+  } = useSWR<TaskRecord[]>("/api/tasks", swrFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10_000,
+    keepPreviousData: true,
+  });
 
-    const response = await fetch("/api/tasks", { cache: "no-store" });
-    if (!response.ok) {
-      setError("Unable to load tasks.");
-      setIsLoading(false);
-      return;
-    }
-
-    const payload = (await response.json()) as TaskRecord[];
-    setTasks(payload);
-    setError(null);
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchTasks();
-  }, [fetchTasks]);
+  const tasks = tasksData ?? [];
+  const displayError = actionError ?? tasksError?.message ?? null;
 
   async function createTask() {
     const title = createForm.title.trim();
     if (!title) {
-      setError("Task title is required.");
+      setActionError("Task title is required.");
       return;
     }
 
     setSaving(true);
+    setActionError(null);
 
     const dueAtIso = createForm.dueAt ? new Date(createForm.dueAt).toISOString() : null;
 
@@ -109,14 +102,15 @@ export function TasksView() {
 
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(payload?.error ?? "Unable to create task.");
+      setActionError(payload?.error ?? "Unable to create task.");
       return;
     }
 
     const task = (await response.json()) as TaskRecord;
-    setTasks((current) => [task, ...current]);
     setCreateForm(emptyTaskForm());
-    setError(null);
+    setActionError(null);
+
+    await mutate((current) => [task, ...(current ?? [])], { revalidate: false });
   }
 
   async function saveTaskEdit() {
@@ -126,11 +120,12 @@ export function TasksView() {
 
     const title = editForm.title.trim();
     if (!title) {
-      setError("Task title is required.");
+      setActionError("Task title is required.");
       return;
     }
 
     setSaving(true);
+    setActionError(null);
 
     const response = await fetch(`/api/tasks/${editingTaskId}`, {
       method: "PATCH",
@@ -150,18 +145,20 @@ export function TasksView() {
 
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(payload?.error ?? "Unable to update task.");
+      setActionError(payload?.error ?? "Unable to update task.");
       return;
     }
 
     const updated = (await response.json()) as TaskRecord;
-    setTasks((current) =>
-      current.map((task) => (task.id === updated.id ? updated : task)),
-    );
-
     setEditingTaskId(null);
     setEditForm(emptyTaskForm());
-    setError(null);
+    setActionError(null);
+
+    await mutate(
+      (current) =>
+        (current ?? []).map((task) => (task.id === updated.id ? updated : task)),
+      { revalidate: false },
+    );
   }
 
   function startEditing(task: TaskRecord) {
@@ -177,6 +174,7 @@ export function TasksView() {
 
   async function toggleDone(task: TaskRecord) {
     const nextStatus: TaskStatus = task.status === "done" ? "todo" : "done";
+    setActionError(null);
 
     const response = await fetch(`/api/tasks/${task.id}`, {
       method: "PATCH",
@@ -189,27 +187,35 @@ export function TasksView() {
     });
 
     if (!response.ok) {
-      setError("Unable to update task status.");
+      setActionError("Unable to update task status.");
       return;
     }
 
     const updated = (await response.json()) as TaskRecord;
-    setTasks((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item)),
+
+    await mutate(
+      (current) =>
+        (current ?? []).map((item) => (item.id === updated.id ? updated : item)),
+      { revalidate: false },
     );
   }
 
   async function deleteTask(taskId: string) {
+    setActionError(null);
+
     const response = await fetch(`/api/tasks/${taskId}`, {
       method: "DELETE",
     });
 
     if (!response.ok) {
-      setError("Unable to delete task.");
+      setActionError("Unable to delete task.");
       return;
     }
 
-    setTasks((current) => current.filter((task) => task.id !== taskId));
+    await mutate(
+      (current) => (current ?? []).filter((task) => task.id !== taskId),
+      { revalidate: false },
+    );
 
     if (editingTaskId === taskId) {
       setEditingTaskId(null);
@@ -224,9 +230,9 @@ export function TasksView() {
         <p className="mt-1 text-sm text-textMuted">Capture, prioritize, and complete work quickly.</p>
       </header>
 
-      {error && (
+      {displayError && (
         <p className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-2 text-sm text-red-300">
-          {error}
+          {displayError}
         </p>
       )}
 
@@ -315,7 +321,7 @@ export function TasksView() {
       <div className="rounded-xl border border-border bg-panel p-4 shadow-glow sm:p-5">
         <h2 className="font-display text-lg">Your tasks</h2>
 
-        {isLoading ? (
+        {isLoading && tasks.length === 0 ? (
           <p className="mt-4 text-sm text-textMuted">Loading tasks...</p>
         ) : tasks.length === 0 ? (
           <p className="mt-4 text-sm text-textMuted">No tasks yet. Add your first one above.</p>
@@ -481,4 +487,3 @@ export function TasksView() {
     </section>
   );
 }
-

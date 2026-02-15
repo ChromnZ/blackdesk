@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { swrFetcher } from "@/lib/swr-fetcher";
 import { toLocalInputValue } from "@/lib/utils";
 import type {
   DateSelectArg,
@@ -12,7 +13,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import { useMemo, useState } from "react";
 
 type EventRecord = {
   id: string;
@@ -43,33 +45,24 @@ function defaultEventForm(start?: Date, end?: Date): EventForm {
 }
 
 export function CalendarView() {
-  const [events, setEvents] = useState<EventRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [isModalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<EventForm>(defaultEventForm());
   const [isSaving, setSaving] = useState(false);
 
-  const fetchEvents = useCallback(async () => {
-    setIsLoading(true);
+  const {
+    data: eventsData,
+    error: eventsError,
+    isLoading,
+    mutate,
+  } = useSWR<EventRecord[]>("/api/events", swrFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10_000,
+    keepPreviousData: true,
+  });
 
-    const response = await fetch("/api/events", { cache: "no-store" });
-    if (!response.ok) {
-      setError("Unable to load calendar events.");
-      setIsLoading(false);
-      return;
-    }
-
-    const payload = (await response.json()) as EventRecord[];
-    setEvents(payload);
-    setError(null);
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchEvents();
-  }, [fetchEvents]);
+  const events = useMemo(() => eventsData ?? [], [eventsData]);
+  const displayError = error ?? eventsError?.message ?? null;
 
   const calendarEvents = useMemo(
     () =>
@@ -139,8 +132,10 @@ export function CalendarView() {
     }
 
     const updated = (await response.json()) as EventRecord;
-    setEvents((current) =>
-      current.map((event) => (event.id === updated.id ? updated : event)),
+    await mutate(
+      (current) =>
+        (current ?? []).map((event) => (event.id === updated.id ? updated : event)),
+      { revalidate: false },
     );
   }
 
@@ -191,12 +186,12 @@ export function CalendarView() {
 
     const saved = (await response.json()) as EventRecord;
 
-    setEvents((current) => {
+    await mutate((current) => {
       if (form.id) {
-        return current.map((event) => (event.id === saved.id ? saved : event));
+        return (current ?? []).map((event) => (event.id === saved.id ? saved : event));
       }
-      return [...current, saved];
-    });
+      return [...(current ?? []), saved];
+    }, { revalidate: false });
 
     setModalOpen(false);
     setForm(defaultEventForm());
@@ -221,7 +216,10 @@ export function CalendarView() {
       return;
     }
 
-    setEvents((current) => current.filter((event) => event.id !== form.id));
+    await mutate(
+      (current) => (current ?? []).filter((event) => event.id !== form.id),
+      { revalidate: false },
+    );
     setModalOpen(false);
     setForm(defaultEventForm());
   }
@@ -243,14 +241,14 @@ export function CalendarView() {
         </button>
       </div>
 
-      {error && (
+      {displayError && (
         <p className="rounded-md border border-red-700/50 bg-red-900/20 px-3 py-2 text-sm text-red-300">
-          {error}
+          {displayError}
         </p>
       )}
 
       <div className="rounded-xl border border-border bg-panel p-3 shadow-glow sm:p-4">
-        {isLoading ? (
+        {isLoading && events.length === 0 ? (
           <p className="py-16 text-center text-sm text-textMuted">Loading calendar...</p>
         ) : (
           <FullCalendar
@@ -385,4 +383,3 @@ export function CalendarView() {
     </section>
   );
 }
-
