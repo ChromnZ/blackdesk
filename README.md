@@ -6,7 +6,7 @@ BlackDesk is a black-theme personal productivity app built with Next.js App Rout
 
 - Next.js 14+ (App Router) + TypeScript
 - Tailwind CSS
-- Prisma ORM + SQLite (local dev)
+- Prisma ORM + PostgreSQL (Neon)
 - NextAuth (Credentials + Google OAuth)
 - FullCalendar (month/week/day + drag/drop)
 
@@ -15,28 +15,56 @@ BlackDesk is a black-theme personal productivity app built with Next.js App Rout
 Copy `.env.example` to `.env` and fill values:
 
 ```bash
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST-pooler.REGION.aws.neon.tech/DB_NAME?sslmode=require&pgbouncer=true&connect_timeout=15"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST.REGION.aws.neon.tech/DB_NAME?sslmode=require&connect_timeout=15"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-secret"
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
 ```
 
-## Setup
+## Local Setup (Neon)
 
 1. `npm install`
-2. `npx prisma migrate dev --name init`
-3. `npm run dev`
+2. Set `.env` values using your Neon connection strings
+3. `npm run db:push`
+4. `npm run dev`
 
 Open `http://localhost:3000`.
 
+## Vercel + Neon Deployment
+
+1. In Vercel, import this GitHub repo.
+2. In Vercel Project Settings -> Environment Variables, add:
+   - `DATABASE_URL` (Neon pooled URL: `-pooler`, includes `pgbouncer=true`)
+   - `DIRECT_URL` (Neon direct URL: non-pooler host)
+   - `NEXTAUTH_URL` (your Vercel domain, e.g. `https://blackdesk.vercel.app`)
+   - `NEXTAUTH_SECRET`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+3. Apply schema once to Neon from your machine:
+   - `npm run db:push`
+4. Redeploy in Vercel.
+
 ## Google OAuth Setup
 
-In Google Cloud Console, add this authorized redirect URI:
+For local:
 
 - `http://localhost:3000/api/auth/callback/google`
 
-Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`.
+For production:
+
+- `https://YOUR_VERCEL_DOMAIN/api/auth/callback/google`
+
+Then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in both local `.env` and Vercel env vars.
+
+## Optional Migrations Workflow
+
+For a migration-first workflow later, you can switch from `db push` to:
+
+1. `npx prisma migrate dev --name init`
+2. Commit generated `prisma/migrations`
+3. `npm run dev`
 
 ## Demo Seed (Optional)
 
