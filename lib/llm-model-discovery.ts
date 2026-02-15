@@ -1,5 +1,10 @@
 import { createHash } from "crypto";
-import { LLM_MODELS, type AvailableLlmModels, type LlmProvider } from "@/lib/llm-config";
+import {
+  LLM_MODELS,
+  filterModernModels,
+  type AvailableLlmModels,
+  type LlmProvider,
+} from "@/lib/llm-config";
 
 const MODEL_DISCOVERY_TIMEOUT_MS = 5000;
 const MODEL_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -146,7 +151,10 @@ async function listOpenAiModels(apiKey: string) {
     .filter((value): value is string => Boolean(value))
     .filter(isOpenAiTextModel);
 
-  return sortOpenAiModels(uniqueModels(candidateModels));
+  return filterModernModels(
+    "openai",
+    sortOpenAiModels(uniqueModels(candidateModels)),
+  );
 }
 
 async function listAnthropicModels(apiKey: string) {
@@ -166,7 +174,10 @@ async function listAnthropicModels(apiKey: string) {
     .map((item) => item.id?.trim() ?? "")
     .filter((value): value is string => value.startsWith("claude-"));
 
-  return sortModels(uniqueModels(candidateModels));
+  return filterModernModels(
+    "anthropic",
+    sortModels(uniqueModels(candidateModels)),
+  );
 }
 
 async function listGoogleModels(apiKey: string) {
@@ -190,7 +201,7 @@ async function listGoogleModels(apiKey: string) {
     })
     .filter((value): value is string => Boolean(value) && value.startsWith("gemini"));
 
-  return sortModels(uniqueModels(candidateModels));
+  return filterModernModels("google", sortModels(uniqueModels(candidateModels)));
 }
 
 async function discoverModelsForProvider(provider: LlmProvider, apiKey: string | null) {
@@ -216,11 +227,13 @@ async function discoverModelsForProvider(provider: LlmProvider, apiKey: string |
     setCachedModels(provider, apiKey, discoveredModels);
     return discoveredModels;
   } catch (error) {
-    const fallbackModels =
+    const fallbackModels = filterModernModels(
+      provider,
       error instanceof ModelDiscoveryHttpError &&
       (error.status === 401 || error.status === 403)
         ? []
-        : staleModels ?? [...LLM_MODELS[provider]];
+        : staleModels ?? [...LLM_MODELS[provider]],
+    );
 
     setCachedModels(provider, apiKey, fallbackModels);
     return fallbackModels;
