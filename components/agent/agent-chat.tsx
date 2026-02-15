@@ -347,7 +347,7 @@ export function AgentChat() {
               value={config?.provider ?? "openai"}
               disabled={isLoadingConfig || isSwitchingModel || !config}
               onChange={(event) => handleProviderChange(event.target.value)}
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain disabled:opacity-60"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain disabled:opacity-60"
             >
               <option value="openai">OpenAI</option>
               <option value="anthropic">Claude (Anthropic)</option>
@@ -364,7 +364,7 @@ export function AgentChat() {
               value={config?.model ?? ""}
               disabled={isLoadingConfig || isSwitchingModel || !config}
               onChange={(event) => handleModelChange(event.target.value)}
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain disabled:opacity-60"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain disabled:opacity-60"
             >
               {config &&
                 config.availableModels[config.provider].map((option) => (
@@ -400,7 +400,7 @@ export function AgentChat() {
       <div className="rounded-xl border border-border bg-panel p-3 shadow-glow sm:p-4">
         <div
           ref={listRef}
-          className="h-[50vh] min-h-[360px] space-y-3 overflow-y-auto rounded-lg border border-border bg-black p-3"
+          className="h-[50vh] min-h-[360px] space-y-3 overflow-y-auto rounded-lg border border-border bg-panelSoft p-3"
         >
           {messages.map((message) => {
             const isUser = message.role === "user";
@@ -412,7 +412,7 @@ export function AgentChat() {
                 <div
                   className={`max-w-[90%] rounded-lg border px-3 py-2 text-sm sm:max-w-[80%] ${
                     isUser
-                      ? "border-white/20 bg-white text-black"
+                      ? "border-accent/25 bg-accent text-accentText"
                       : "border-border bg-panel text-textMain"
                   }`}
                 >
@@ -443,7 +443,7 @@ export function AgentChat() {
                 void submit(prompt);
               }}
               disabled={isSending || !hasLinkedAi}
-              className="rounded-md border border-border bg-black px-2.5 py-1 text-xs text-textMuted transition hover:bg-panelSoft hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-border bg-panelSoft px-2.5 py-1 text-xs text-textMuted transition hover:bg-panelSoft hover:text-textMain disabled:cursor-not-allowed disabled:opacity-60"
             >
               {prompt}
             </button>
@@ -456,12 +456,12 @@ export function AgentChat() {
             onChange={(event) => setInput(event.target.value)}
             placeholder="Type anything..."
             aria-label="Chat input"
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
           />
           <button
             type="submit"
             disabled={isSending || input.trim().length === 0 || !hasLinkedAi}
-            className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send
           </button>

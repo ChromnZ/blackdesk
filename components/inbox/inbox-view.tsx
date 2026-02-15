@@ -118,7 +118,7 @@ export function InboxView() {
           id="inbox-content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          className="min-h-48 w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+          className="min-h-48 w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
           placeholder="Ideas, reminders, rough notes..."
         />
 
@@ -127,14 +127,14 @@ export function InboxView() {
             type="button"
             onClick={() => void addInboxItem()}
             disabled={isSaving}
-            className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "Saving..." : "Add to inbox"}
           </button>
           <button
             type="button"
             onClick={() => void triggerExtractStub()}
-            className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
           >
             Extract tasks/events (soon)
           </button>
@@ -153,7 +153,7 @@ export function InboxView() {
         ) : (
           <ul className="mt-4 space-y-3">
             {items.map((item) => (
-              <li key={item.id} className="rounded-lg border border-border bg-black p-4">
+              <li key={item.id} className="rounded-lg border border-border bg-panelSoft p-4">
                 <p className="whitespace-pre-wrap text-sm text-textMain">{item.content}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-textMuted">
                   <span>{new Date(item.createdAt).toLocaleString()}</span>

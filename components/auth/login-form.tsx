@@ -95,7 +95,7 @@ export function LoginForm() {
             required
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="demo"
           />
         </div>
@@ -112,7 +112,7 @@ export function LoginForm() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="********"
           />
         </div>
@@ -120,7 +120,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? "Logging in..." : "Login"}
         </button>
@@ -132,14 +132,14 @@ export function LoginForm() {
         type="button"
         onClick={handleGoogleLogin}
         disabled={isLoading}
-        className="w-full rounded-md border border-border bg-black px-4 py-2 text-sm font-semibold text-textMain transition hover:bg-panelSoft disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-md border border-border bg-panelSoft px-4 py-2 text-sm font-semibold text-textMain transition hover:bg-panel disabled:cursor-not-allowed disabled:opacity-60"
       >
         Continue with Google
       </button>
 
       <p className="mt-5 text-center text-sm text-textMuted">
         New here?{" "}
-        <Link href="/auth/register" className="text-white underline underline-offset-4">
+        <Link href="/auth/register" className="text-textMain underline underline-offset-4">
           Create account
         </Link>
       </p>

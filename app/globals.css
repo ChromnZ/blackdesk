@@ -3,17 +3,45 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --color-bg: 246 248 252;
+  --color-panel: 255 255 255;
+  --color-panel-soft: 239 244 250;
+  --color-border: 203 213 225;
+  --color-text-main: 15 23 42;
+  --color-text-muted: 71 85 105;
+  --color-accent: 15 23 42;
+  --color-accent-text: 248 250 252;
+}
+
+html.dark {
   color-scheme: dark;
+  --color-bg: 3 7 18;
+  --color-panel: 9 14 28;
+  --color-panel-soft: 17 24 39;
+  --color-border: 51 65 85;
+  --color-text-main: 226 232 240;
+  --color-text-muted: 148 163 184;
+  --color-accent: 226 232 240;
+  --color-accent-text: 15 23 42;
 }
 
 * {
-  border-color: #1f1f1f;
+  border-color: rgb(var(--color-border) / 1);
 }
 
 body {
   min-height: 100vh;
-  background: #000000;
-  color: #f5f5f5;
+  background:
+    radial-gradient(1200px 600px at 10% -20%, rgb(var(--color-panel-soft) / 0.7), transparent 60%),
+    radial-gradient(900px 480px at 90% -35%, rgb(var(--color-panel-soft) / 0.55), transparent 62%),
+    rgb(var(--color-bg) / 1);
+  color: rgb(var(--color-text-main) / 1);
+  line-height: 1.45;
+}
+
+::selection {
+  background: rgb(var(--color-accent) / 0.2);
 }
 
 a,
@@ -21,24 +49,31 @@ button,
 input,
 textarea,
 select {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
+}
+
+button,
+input,
+textarea,
+select {
+  @apply transition-colors;
 }
 
 .fc {
-  --fc-border-color: #1f1f1f;
-  --fc-page-bg-color: #0a0a0a;
-  --fc-neutral-bg-color: #0a0a0a;
-  --fc-list-event-hover-bg-color: #111111;
-  --fc-now-indicator-color: #f5f5f5;
-  --fc-button-bg-color: #111111;
-  --fc-button-border-color: #2a2a2a;
-  --fc-button-hover-bg-color: #1b1b1b;
-  --fc-button-hover-border-color: #3a3a3a;
-  --fc-button-active-bg-color: #242424;
-  --fc-button-active-border-color: #4b4b4b;
-  --fc-event-bg-color: #f5f5f5;
-  --fc-event-border-color: #f5f5f5;
-  --fc-event-text-color: #111111;
+  --fc-border-color: rgb(var(--color-border) / 1);
+  --fc-page-bg-color: rgb(var(--color-panel-soft) / 1);
+  --fc-neutral-bg-color: rgb(var(--color-panel-soft) / 1);
+  --fc-list-event-hover-bg-color: rgb(var(--color-panel) / 1);
+  --fc-now-indicator-color: rgb(var(--color-accent) / 1);
+  --fc-button-bg-color: rgb(var(--color-panel) / 1);
+  --fc-button-border-color: rgb(var(--color-border) / 1);
+  --fc-button-hover-bg-color: rgb(var(--color-panel-soft) / 1);
+  --fc-button-hover-border-color: rgb(var(--color-border) / 1);
+  --fc-button-active-bg-color: rgb(var(--color-accent) / 0.18);
+  --fc-button-active-border-color: rgb(var(--color-accent) / 0.35);
+  --fc-event-bg-color: rgb(var(--color-accent) / 1);
+  --fc-event-border-color: rgb(var(--color-accent) / 1);
+  --fc-event-text-color: rgb(var(--color-accent-text) / 1);
 }
 
 .fc .fc-toolbar-title {
@@ -57,6 +92,6 @@ select {
 }
 
 .fc .fc-day-today {
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: rgb(var(--color-accent) / 0.1) !important;
 }
 

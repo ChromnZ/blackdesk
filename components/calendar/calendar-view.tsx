@@ -237,7 +237,7 @@ export function CalendarView() {
         <button
           type="button"
           onClick={() => openCreateModal()}
-          className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+          className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
         >
           New event
         </button>
@@ -294,7 +294,7 @@ export function CalendarView() {
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+              className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
             >
               Cancel
             </button>
@@ -302,7 +302,7 @@ export function CalendarView() {
               type="button"
               onClick={() => void saveEvent()}
               disabled={isSaving}
-              className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
@@ -327,7 +327,7 @@ export function CalendarView() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
 
@@ -344,7 +344,7 @@ export function CalendarView() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, startAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
 
@@ -360,7 +360,7 @@ export function CalendarView() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, endAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
           </div>
@@ -376,7 +376,7 @@ export function CalendarView() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               placeholder="Optional details"
             />
           </div>

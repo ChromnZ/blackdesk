@@ -177,7 +177,7 @@ export function LlmSettings() {
             </p>
           )}
 
-          <div className="space-y-3 rounded-md border border-border bg-black p-3">
+          <div className="space-y-3 rounded-md border border-border bg-panelSoft p-3">
             <div className="flex items-center justify-between gap-2">
               <label htmlFor="openai-key" className="text-sm text-textMuted">
                 OpenAI API Key
@@ -210,7 +210,7 @@ export function LlmSettings() {
             />
           </div>
 
-          <div className="space-y-3 rounded-md border border-border bg-black p-3">
+          <div className="space-y-3 rounded-md border border-border bg-panelSoft p-3">
             <div className="flex items-center justify-between gap-2">
               <label htmlFor="anthropic-key" className="text-sm text-textMuted">
                 Anthropic API Key
@@ -243,7 +243,7 @@ export function LlmSettings() {
             />
           </div>
 
-          <div className="space-y-3 rounded-md border border-border bg-black p-3">
+          <div className="space-y-3 rounded-md border border-border bg-panelSoft p-3">
             <div className="flex items-center justify-between gap-2">
               <label htmlFor="google-key" className="text-sm text-textMuted">
                 Google API Key
@@ -280,7 +280,7 @@ export function LlmSettings() {
             type="button"
             onClick={() => void saveSettings()}
             disabled={isSaving}
-            className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "Saving..." : "Save AI settings"}
           </button>

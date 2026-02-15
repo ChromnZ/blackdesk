@@ -215,13 +215,13 @@ export function ProfileIntegrations() {
         </p>
       )}
 
-      <div className="rounded-md border border-border bg-black/30 px-3 py-2">
+      <div className="rounded-md border border-border bg-panelSoft/80 px-3 py-2">
         <p className="text-xs uppercase tracking-[0.18em] text-textMuted">Username</p>
         <p className="mt-1 text-sm text-textMain">{username}</p>
         <p className="mt-1 text-xs text-textMuted">Lowercase letters and numbers only, cannot be changed.</p>
       </div>
 
-      <div className="rounded-md border border-border bg-black/30 p-3">
+      <div className="rounded-md border border-border bg-panelSoft/80 p-3">
         <p className="text-xs uppercase tracking-[0.18em] text-textMuted">
           Profile Picture
         </p>
@@ -250,7 +250,7 @@ export function ProfileIntegrations() {
             <button
               type="button"
               onClick={handleSelectAvatar}
-              className="rounded-md border border-border bg-black px-3 py-1.5 text-sm text-textMain transition hover:bg-panelSoft"
+              className="rounded-md border border-border bg-panelSoft px-3 py-1.5 text-sm text-textMain transition hover:bg-panelSoft"
             >
               Upload photo
             </button>
@@ -279,13 +279,13 @@ export function ProfileIntegrations() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+          className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
           placeholder="you@example.com"
         />
         <button
           type="submit"
           disabled={savingProfile}
-          className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {savingProfile ? "Saving..." : "Save profile changes"}
         </button>
@@ -295,7 +295,7 @@ export function ProfileIntegrations() {
 
       <div>
         <h3 className="font-display text-base">Integrations</h3>
-        <div className="mt-3 rounded-md border border-border bg-black/30 px-3 py-3">
+        <div className="mt-3 rounded-md border border-border bg-panelSoft/80 px-3 py-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-textMain">Google</p>
@@ -314,7 +314,7 @@ export function ProfileIntegrations() {
                 type="button"
                 onClick={() => void handleLinkGoogle()}
                 disabled={linkingGoogle}
-                className="rounded-md border border-border bg-black px-3 py-1.5 text-sm text-textMain transition hover:bg-panelSoft disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-border bg-panelSoft px-3 py-1.5 text-sm text-textMain transition hover:bg-panelSoft disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {linkingGoogle ? "Redirecting..." : "Link Google"}
               </button>

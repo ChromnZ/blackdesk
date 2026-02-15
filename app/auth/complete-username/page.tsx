@@ -15,7 +15,7 @@ export default async function CompleteUsernamePage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-4">
+    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <CompleteUsernameForm />
     </main>
   );

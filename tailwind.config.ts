@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,20 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#000000",
-        panel: "#0a0a0a",
-        panelSoft: "#111111",
-        border: "#1f1f1f",
-        textMain: "#f5f5f5",
-        textMuted: "#9ca3af",
-        accent: "#fafafa",
+        bg: "rgb(var(--color-bg) / <alpha-value>)",
+        panel: "rgb(var(--color-panel) / <alpha-value>)",
+        panelSoft: "rgb(var(--color-panel-soft) / <alpha-value>)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
+        textMain: "rgb(var(--color-text-main) / <alpha-value>)",
+        textMuted: "rgb(var(--color-text-muted) / <alpha-value>)",
+        accent: "rgb(var(--color-accent) / <alpha-value>)",
+        accentText: "rgb(var(--color-accent-text) / <alpha-value>)",
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(255,255,255,0.06), 0 8px 30px rgba(0,0,0,0.45)",
+        glow: "0 0 0 1px rgb(var(--color-border) / 0.6), 0 12px 32px rgb(2 6 23 / 0.08)",
       },
       fontFamily: {
-        display: ["var(--font-space-grotesk)", "sans-serif"],
-        body: ["var(--font-ibm-plex-mono)", "monospace"],
+        display: ["var(--font-display)", "sans-serif"],
+        body: ["var(--font-body)", "sans-serif"],
       },
     },
   },

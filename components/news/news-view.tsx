@@ -119,8 +119,8 @@ export function NewsView() {
                 className={cn(
                   "rounded-md border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition",
                   isActive
-                    ? "border-white/20 bg-white text-black"
-                    : "border-border bg-black text-textMuted hover:bg-panelSoft hover:text-textMain",
+                    ? "border-accent/25 bg-accent text-accentText"
+                    : "border-border bg-panelSoft text-textMuted hover:bg-panelSoft hover:text-textMain",
                 )}
               >
                 {category.label}
@@ -131,7 +131,7 @@ export function NewsView() {
           <button
             type="button"
             onClick={() => void fetchCategory(activeTab, true)}
-            className="ml-auto rounded-md border border-border bg-black px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-textMuted transition hover:bg-panelSoft hover:text-textMain"
+            className="ml-auto rounded-md border border-border bg-panelSoft px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-textMuted transition hover:bg-panelSoft hover:text-textMain"
           >
             Refresh
           </button>
@@ -148,7 +148,7 @@ export function NewsView() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`skeleton-${index}`}
-                className="animate-pulse rounded-md border border-border bg-black/40 px-3 py-3"
+                className="animate-pulse rounded-md border border-border bg-panelSoft/90 px-3 py-3"
               >
                 <div className="h-4 w-3/4 rounded bg-panelSoft" />
                 <div className="mt-2 h-3 w-1/3 rounded bg-panelSoft" />
@@ -156,7 +156,7 @@ export function NewsView() {
             ))}
           </div>
         ) : articles.length === 0 ? (
-          <p className="mt-4 rounded-md border border-border bg-black/30 px-3 py-6 text-sm text-textMuted">
+          <p className="mt-4 rounded-md border border-border bg-panelSoft/80 px-3 py-6 text-sm text-textMuted">
             No news articles were available for this category right now.
           </p>
         ) : (
@@ -164,13 +164,13 @@ export function NewsView() {
             {articles.map((article, index) => (
               <li
                 key={`${article.url}-${index}`}
-                className="rounded-md border border-border bg-black/30 px-4 py-3 transition hover:bg-black/50"
+                className="rounded-md border border-border bg-panelSoft/80 px-4 py-3 transition hover:bg-panel"
               >
                 <a
                   href={article.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block text-sm font-medium text-textMain transition hover:text-white"
+                  className="block text-sm font-medium text-textMain transition hover:text-accent"
                 >
                   {article.title}
                 </a>

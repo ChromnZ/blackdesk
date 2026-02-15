@@ -6,7 +6,7 @@ type TopbarProps = {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-black/95 backdrop-blur md:hidden">
+    <header className="sticky top-0 z-20 border-b border-border bg-panel/95 backdrop-blur md:hidden">
       <div className="mx-auto flex h-14 w-full items-center px-4">
         <button
           type="button"

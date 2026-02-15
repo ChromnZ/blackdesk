@@ -243,7 +243,7 @@ export function TasksView() {
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               placeholder="Task title"
             />
           </div>
@@ -259,7 +259,7 @@ export function TasksView() {
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, dueAt: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
 
@@ -276,7 +276,7 @@ export function TasksView() {
                   priority: event.target.value as "" | TaskPriority,
                 }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             >
               <option value="">None</option>
               <option value="low">Low</option>
@@ -296,7 +296,7 @@ export function TasksView() {
               onChange={(event) =>
                 setCreateForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               placeholder="Optional notes"
             />
           </div>
@@ -306,7 +306,7 @@ export function TasksView() {
           type="button"
           onClick={() => void createTask()}
           disabled={isSaving}
-          className="mt-4 rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving ? "Saving..." : "Add task"}
         </button>
@@ -322,7 +322,7 @@ export function TasksView() {
         ) : (
           <ul className="mt-4 space-y-3">
             {tasks.map((task) => (
-              <li key={task.id} className="rounded-lg border border-border bg-black p-4">
+              <li key={task.id} className="rounded-lg border border-border bg-panelSoft p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-display text-lg font-medium">{task.title}</p>
@@ -372,7 +372,7 @@ export function TasksView() {
             <button
               type="button"
               onClick={() => setEditingTaskId(null)}
-              className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+              className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
             >
               Cancel
             </button>
@@ -380,7 +380,7 @@ export function TasksView() {
               type="button"
               onClick={() => void saveTaskEdit()}
               disabled={isSaving}
-              className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
@@ -398,7 +398,7 @@ export function TasksView() {
               onChange={(event) =>
                 setEditForm((current) => ({ ...current, title: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
 
@@ -414,7 +414,7 @@ export function TasksView() {
                 onChange={(event) =>
                   setEditForm((current) => ({ ...current, dueAt: event.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               />
             </div>
 
@@ -431,7 +431,7 @@ export function TasksView() {
                     priority: event.target.value as "" | TaskPriority,
                   }))
                 }
-                className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+                className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
               >
                 <option value="">None</option>
                 <option value="low">Low</option>
@@ -454,7 +454,7 @@ export function TasksView() {
                   status: event.target.value as TaskStatus,
                 }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             >
               <option value="todo">To do</option>
               <option value="doing">Doing</option>
@@ -473,7 +473,7 @@ export function TasksView() {
               onChange={(event) =>
                 setEditForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain"
+              className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain"
             />
           </div>
         </div>

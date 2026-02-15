@@ -76,7 +76,7 @@ export function RegisterForm() {
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value.toLowerCase())}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="yourusername"
           />
           <p className="mt-1 text-xs text-textMuted">
@@ -96,7 +96,7 @@ export function RegisterForm() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="you@example.com"
           />
         </div>
@@ -114,7 +114,7 @@ export function RegisterForm() {
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="At least 8 characters"
           />
         </div>
@@ -132,7 +132,7 @@ export function RegisterForm() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            className="w-full rounded-md border border-border bg-black px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
+            className="w-full rounded-md border border-border bg-panelSoft px-3 py-2 text-sm text-textMain placeholder:text-textMuted"
             placeholder="Re-enter your password"
           />
         </div>
@@ -140,7 +140,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? "Creating..." : "Create account"}
         </button>
@@ -148,7 +148,7 @@ export function RegisterForm() {
 
       <p className="mt-5 text-center text-sm text-textMuted">
         Already have an account?{" "}
-        <Link href="/auth/login" className="text-white underline underline-offset-4">
+        <Link href="/auth/login" className="text-textMain underline underline-offset-4">
           Login
         </Link>
       </p>

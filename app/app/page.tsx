@@ -59,25 +59,25 @@ export default async function DashboardPage() {
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/app/agent"
-            className="rounded-md border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+            className="rounded-md border border-accent/25 bg-accent px-4 py-2 text-sm font-semibold text-accentText transition hover:bg-accent/90"
           >
             Open AI Agent
           </Link>
           <Link
             href="/app/tasks"
-            className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
           >
             View Tasks
           </Link>
           <Link
             href="/app/calendar"
-            className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
           >
             View Calendar
           </Link>
           <Link
             href="/app/news"
-            className="rounded-md border border-border bg-black px-4 py-2 text-sm text-textMain transition hover:bg-panelSoft"
+            className="rounded-md border border-border bg-panelSoft px-4 py-2 text-sm text-textMain transition hover:bg-panel"
           >
             View News
           </Link>
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
         </div>
 
         {recentTasks.length === 0 ? (
-          <p className="mt-4 rounded-md border border-border bg-black/30 px-3 py-4 text-sm text-textMuted">
+          <p className="mt-4 rounded-md border border-border bg-panelSoft/80 px-3 py-4 text-sm text-textMuted">
             No tasks yet. Ask AI Agent to create your first one.
           </p>
         ) : (
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
             {recentTasks.map((task) => (
               <li
                 key={task.id}
-                className="flex items-center justify-between rounded-md border border-border bg-black/30 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-border bg-panelSoft/80 px-3 py-2 text-sm"
               >
                 <span className="truncate pr-4">{task.title}</span>
                 <span className="rounded border border-border px-2 py-0.5 text-[11px] uppercase tracking-wide text-textMuted">

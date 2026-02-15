@@ -1,6 +1,6 @@
 # BlackDesk
 
-BlackDesk is a black-theme personal productivity app built with Next.js App Router, Prisma, and NextAuth.
+BlackDesk is a personal productivity app with light/dark themes, built with Next.js App Router, Prisma, and NextAuth.
 
 ## Stack
 
@@ -110,6 +110,7 @@ npm run prisma:seed
 - Settings includes Integrations so credentials users can link Google login.
 - Email and profile picture can be updated from Settings.
 - When Google is linked/logged in, BlackDesk syncs Google email and profile photo.
+- Theme selector is available in Settings and the sidebar footer (light/dark/system).
 - Users configure AI API keys in Settings, then choose provider/model from the AI Agent page.
 - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
 - Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).
