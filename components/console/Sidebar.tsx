@@ -2,28 +2,23 @@
 
 import { cn } from "@/lib/utils";
 import {
-  BarChart3,
   Bot,
+  CalendarDays,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  FolderKanban,
-  Gauge,
-  HardDrive,
   Headphones,
+  Home,
   ImageIcon,
-  KeyRound,
-  Layers3,
-  ListChecks,
-  Logs,
+  Inbox,
   MessageSquare,
-  Settings2,
+  Newspaper,
+  Settings,
   Sparkles,
-  Wand2,
   Video,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { type ReactNode } from "react";
 
 type SidebarItem = {
@@ -40,9 +35,56 @@ type SidebarSection = {
 
 const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
+    label: "Workspace",
+    items: [
+      { key: "home", label: "Home", icon: <Home className="h-4 w-4" />, href: "/app" },
+      {
+        key: "agent-builder",
+        label: "AI Agent",
+        icon: <Bot className="h-4 w-4" />,
+        href: "/app/agent",
+      },
+      {
+        key: "calendar",
+        label: "Calendar",
+        icon: <CalendarDays className="h-4 w-4" />,
+        href: "/app/calendar",
+      },
+      {
+        key: "tasks",
+        label: "Tasks",
+        icon: <CheckSquare className="h-4 w-4" />,
+        href: "/app/tasks",
+      },
+      {
+        key: "news",
+        label: "News",
+        icon: <Newspaper className="h-4 w-4" />,
+        href: "/app/news",
+      },
+      {
+        key: "inbox",
+        label: "Inbox",
+        icon: <Inbox className="h-4 w-4" />,
+        href: "/app/inbox",
+      },
+      {
+        key: "settings",
+        label: "Settings",
+        icon: <Settings className="h-4 w-4" />,
+        href: "/app/settings",
+      },
+    ],
+  },
+  {
     label: "Create",
     items: [
-      { key: "chat", label: "Chat", icon: <MessageSquare className="h-4 w-4" />, href: "/app/agent" },
+      {
+        key: "chat",
+        label: "Chat",
+        icon: <MessageSquare className="h-4 w-4" />,
+        href: "/app/agent",
+      },
       {
         key: "agent-builder",
         label: "Agent Builder",
@@ -55,34 +97,8 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
   {
-    label: "Manage",
-    items: [
-      { key: "usage", label: "Usage", icon: <BarChart3 className="h-4 w-4" />, href: "/app" },
-      {
-        key: "api-keys",
-        label: "API Keys",
-        icon: <KeyRound className="h-4 w-4" />,
-        href: "/app/settings#integrations",
-      },
-      { key: "apps", label: "Apps", icon: <FolderKanban className="h-4 w-4" />, href: "/app" },
-      { key: "logs", label: "Logs", icon: <Logs className="h-4 w-4" />, href: "/app/news" },
-      {
-        key: "storage",
-        label: "Storage",
-        icon: <HardDrive className="h-4 w-4" />,
-        href: "/app/inbox",
-      },
-    ],
-  },
-  {
     label: "Optimize",
     items: [
-      {
-        key: "evaluation",
-        label: "Evaluation",
-        icon: <Gauge className="h-4 w-4" />,
-        href: "/app/tasks",
-      },
       {
         key: "fine-tuning",
         label: "Fine-tuning",
@@ -112,16 +128,10 @@ function SidebarItemButton({
   collapsed: boolean;
   onPress?: () => void;
 }) {
-  const pathname = usePathname();
-  const isPathActive = item.href
-    ? pathname === item.href || pathname.startsWith(`${item.href}/`)
-    : false;
-
-  const isActive = active || isPathActive;
   const classes = cn(
     "group flex h-9 items-center rounded-md border px-2 text-sm transition",
     collapsed ? "justify-center" : "gap-2.5",
-    isActive
+    active
       ? "border-zinc-700 bg-zinc-800/85 text-zinc-100"
       : "border-transparent text-zinc-400 hover:border-zinc-800 hover:bg-zinc-900/75 hover:text-zinc-200",
   );
@@ -226,37 +236,10 @@ export function ConsoleSidebar({
         </nav>
 
         <div className="border-t border-zinc-900/80 p-3">
-          <div
-            className={cn(
-              "rounded-xl border border-zinc-800 bg-zinc-950/70",
-              collapsed ? "p-2" : "p-3",
-            )}
-          >
-            <div className={cn("flex items-center gap-2", collapsed ? "justify-center" : "")}> 
-              <div className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 text-zinc-200">
-                <Wand2 className="h-4 w-4" />
-              </div>
-              {!collapsed && (
-                <div>
-                  <p className="text-sm font-medium text-zinc-100">Add credits</p>
-                  <p className="text-xs text-zinc-500">Scale up agent runs and storage.</p>
-                </div>
-              )}
-            </div>
-            {!collapsed && (
-              <Link
-                href="/app/settings#integrations"
-                className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-zinc-700 bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-white"
-              >
-                Go to billing
-              </Link>
-            )}
-          </div>
-
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="mt-3 hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
+            className="hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
             aria-label={collapsed ? "Expand panel" : "Collapse panel"}
             title={collapsed ? "Expand panel" : "Collapse panel"}
           >
@@ -265,12 +248,12 @@ export function ConsoleSidebar({
 
           {collapsed && (
             <Link
-              href="/app/settings#integrations"
+              href="/app/settings"
               className="mt-2 hidden h-9 w-9 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/70 text-zinc-400 transition hover:text-zinc-200 md:inline-flex"
-              aria-label="API settings"
-              title="API settings"
+              aria-label="Settings"
+              title="Settings"
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
             </Link>
           )}
 
@@ -281,7 +264,7 @@ export function ConsoleSidebar({
               aria-label="Agent builder"
               title="Agent builder"
             >
-              <ListChecks className="h-4 w-4" />
+              <Bot className="h-4 w-4" />
             </Link>
           )}
 
@@ -292,7 +275,7 @@ export function ConsoleSidebar({
               aria-label="Workspace"
               title="Workspace"
             >
-              <Layers3 className="h-4 w-4" />
+              <Home className="h-4 w-4" />
             </Link>
           )}
         </div>

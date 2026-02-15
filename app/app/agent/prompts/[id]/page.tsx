@@ -1,5 +1,4 @@
 import { AgentPromptEditor } from "@/components/agent/agent-prompt-editor";
-import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -34,24 +33,14 @@ export default async function AgentPromptEditorPage({
   }
 
   return (
-    <ConsoleShell
-      activeNavKey="agent-builder"
-      user={{
-        firstName: session.user.firstName,
-        lastName: session.user.lastName,
-        email: session.user.email ?? undefined,
-        image: session.user.image ?? null,
+    <AgentPromptEditor
+      prompt={{
+        id: prompt.id,
+        title: prompt.title,
+        description: prompt.description,
+        prompt: prompt.prompt,
+        updatedAt: prompt.updatedAt.toISOString(),
       }}
-    >
-      <AgentPromptEditor
-        prompt={{
-          id: prompt.id,
-          title: prompt.title,
-          description: prompt.description,
-          prompt: prompt.prompt,
-          updatedAt: prompt.updatedAt.toISOString(),
-        }}
-      />
-    </ConsoleShell>
+    />
   );
 }
