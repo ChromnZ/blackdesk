@@ -94,28 +94,31 @@ select {
 }
 
 .fc {
-  --fc-border-color: rgb(var(--color-border) / 1);
-  --fc-page-bg-color: rgb(var(--color-panel-soft) / 1);
-  --fc-neutral-bg-color: rgb(var(--color-panel-soft) / 1);
+  --fc-border-color: rgb(var(--color-border) / 0.6);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
   --fc-list-event-hover-bg-color: rgb(var(--color-panel) / 1);
-  --fc-now-indicator-color: rgb(var(--color-accent) / 1);
-  --fc-button-bg-color: rgb(var(--color-panel) / 1);
-  --fc-button-border-color: rgb(var(--color-border) / 1);
+  --fc-now-indicator-color: rgb(96 165 250 / 1);
+  --fc-button-bg-color: rgb(var(--color-panel) / 0.95);
+  --fc-button-border-color: rgb(var(--color-border) / 0.7);
   --fc-button-hover-bg-color: rgb(var(--color-panel-soft) / 1);
   --fc-button-hover-border-color: rgb(var(--color-border) / 1);
-  --fc-button-active-bg-color: rgb(var(--color-accent) / 0.18);
-  --fc-button-active-border-color: rgb(var(--color-accent) / 0.35);
-  --fc-event-bg-color: rgb(var(--color-accent) / 1);
-  --fc-event-border-color: rgb(var(--color-accent) / 1);
-  --fc-event-text-color: rgb(var(--color-accent-text) / 1);
+  --fc-button-active-bg-color: rgb(96 165 250 / 0.2);
+  --fc-button-active-border-color: rgb(96 165 250 / 0.4);
+  --fc-event-bg-color: rgb(59 130 246 / 0.95);
+  --fc-event-border-color: rgb(59 130 246 / 1);
+  --fc-event-text-color: #fff;
+  --fc-today-bg-color: rgb(59 130 246 / 0.12);
 }
 
 .fc .fc-toolbar-title {
-  @apply font-display text-lg text-textMain;
+  @apply font-display text-lg text-textMain sm:text-xl;
 }
 
 .fc .fc-button {
-  @apply rounded border text-xs uppercase tracking-wider;
+  @apply rounded-xl border text-xs font-medium tracking-wide;
+  text-transform: none;
+  box-shadow: none !important;
 }
 
 .fc .fc-col-header-cell-cushion,
@@ -127,5 +130,101 @@ select {
 
 .fc .fc-day-today {
   background: rgb(var(--color-accent) / 0.1) !important;
+}
+
+.calendar-google .fc {
+  --fc-event-bg-color: rgb(59 130 246 / 0.92);
+  --fc-event-border-color: rgb(59 130 246 / 0.95);
+}
+
+.calendar-google .fc .fc-toolbar {
+  margin-bottom: 0.9rem;
+}
+
+.calendar-google .fc .fc-toolbar-chunk {
+  @apply flex items-center gap-1.5;
+}
+
+.calendar-google .fc .fc-button {
+  height: 2.1rem;
+  padding: 0 0.72rem;
+}
+
+.calendar-google .fc .fc-daygrid-day-frame,
+.calendar-google .fc .fc-timegrid-slot,
+.calendar-google .fc .fc-timegrid-col,
+.calendar-google .fc .fc-timegrid-axis,
+.calendar-google .fc .fc-col-header-cell,
+.calendar-google .fc .fc-daygrid-day {
+  @apply border-border/70;
+}
+
+.calendar-google .fc .fc-daygrid-day-number {
+  @apply m-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium text-textMuted;
+}
+
+.calendar-google .fc .fc-day-today .fc-daygrid-day-number {
+  @apply bg-blue-500/20 text-blue-200;
+}
+
+.calendar-google .fc .fc-daygrid-day.fc-day-other {
+  @apply bg-panelSoft/20;
+}
+
+.calendar-google .fc .fc-daygrid-day-top {
+  @apply justify-end;
+}
+
+.calendar-google .fc .fc-daygrid-event {
+  border-radius: 10px;
+  padding: 1px 2px;
+  font-size: 12px;
+}
+
+.calendar-google .fc .fc-event-main {
+  padding: 1px 4px;
+}
+
+.calendar-google .fc .fc-event-content-wrap {
+  @apply truncate;
+}
+
+.calendar-google .fc .fc-event-tagged {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.24);
+}
+
+.calendar-google .fc .fc-timegrid-event {
+  border-radius: 10px;
+}
+
+.calendar-google .fc .fc-scrollgrid {
+  @apply rounded-2xl border border-border/70;
+}
+
+.blackdesk-event-highlight {
+  animation: blackdeskPulse 1.6s ease-in-out 2;
+  box-shadow: 0 0 0 1px rgb(244 244 245 / 0.75), 0 0 0 4px rgb(244 244 245 / 0.2);
+}
+
+.blackdesk-event-focus {
+  filter: saturate(1.1) brightness(1.05);
+}
+
+.blackdesk-event-ooo {
+  opacity: 0.92;
+}
+
+.blackdesk-event-location {
+  border-style: dashed !important;
+}
+
+@keyframes blackdeskPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }
 

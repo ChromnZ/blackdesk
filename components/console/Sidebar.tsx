@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import {
   Bot,
   CalendarDays,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -53,12 +52,6 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         label: "Calendar",
         icon: <CalendarDays className="h-4 w-4" />,
         href: "/app/calendar",
-      },
-      {
-        key: "tasks",
-        label: "Tasks",
-        icon: <CheckSquare className="h-4 w-4" />,
-        href: "/app/tasks",
       },
       {
         key: "news",

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/session";
+import { normalizeTags } from "@/lib/tags";
 import { NextResponse } from "next/server";
 
 const PRIORITIES = ["low", "med", "high"] as const;
@@ -31,6 +32,8 @@ export async function PATCH(
       typeof body.notes === "string"
         ? body.notes.trim()
         : (existing.notes ?? "");
+    const tags =
+      body.tags !== undefined ? normalizeTags(body.tags) : existing.tags;
 
     const dueAt =
       body.dueAt === null
@@ -69,6 +72,7 @@ export async function PATCH(
         notes: notes || null,
         priority,
         status,
+        tags,
       },
     });
 

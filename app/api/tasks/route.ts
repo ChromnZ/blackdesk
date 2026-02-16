@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/session";
+import { normalizeTags } from "@/lib/tags";
 import { NextResponse } from "next/server";
 
 const PRIORITIES = ["low", "med", "high"] as const;
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const title = typeof body.title === "string" ? body.title.trim() : "";
     const notes = typeof body.notes === "string" ? body.notes.trim() : "";
+    const tags = normalizeTags(body.tags);
 
     const dueAt = body.dueAt ? new Date(body.dueAt) : null;
 
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
         notes: notes || null,
         priority,
         status,
+        tags,
       },
     });
 

@@ -26,7 +26,9 @@ model User {
 
   accounts   Account[]
   sessions   Session[]
+  calendars  Calendar[]
   events     Event[]
+  eventReminders EventReminder[]
   tasks      Task[]
   inboxItems InboxItem[]
   llmSettings UserLlmSettings?
@@ -70,20 +72,70 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Event {
+model Calendar {
   id        String   @id @default(cuid())
   userId    String
-  title     String
-  startAt   DateTime
-  endAt     DateTime
-  notes     String?
-  tags      String[] @default([])
+  name      String
+  color     String   @default("#3b82f6")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@index([userId, createdAt])
+}
+
+model Event {
+  id                      String   @id @default(cuid())
+  userId                  String
+  calendarId              String
+  parentEventId           String?
+  originalOccurrenceStart DateTime?
+  title                   String
+  startAt                 DateTime
+  endAt                   DateTime
+  allDay                  Boolean  @default(false)
+  location                String?
+  description             String?
+  notes                   String?
+  color                   String?
+  eventType               String   @default("default")
+  workingLocationLabel    String?
+  timezone                String?
+  recurrenceRule          String?
+  recurrenceUntil         DateTime?
+  recurrenceCount         Int?
+  exdates                 DateTime[] @default([])
+  tags                    String[] @default([])
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendar        Calendar       @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  parentEvent     Event?         @relation("EventRecurrenceExceptions", fields: [parentEventId], references: [id], onDelete: SetNull)
+  exceptionEvents Event[]        @relation("EventRecurrenceExceptions")
+  reminders       EventReminder[]
 
   @@index([userId, startAt])
+  @@index([calendarId, startAt])
+  @@index([parentEventId])
+}
+
+model EventReminder {
+  id            String   @id @default(cuid())
+  userId        String
+  eventId       String
+  minutesBefore Int
+  method        String
+  firedAt       DateTime?
+  createdAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId, firedAt, method])
+  @@index([eventId, minutesBefore])
 }
 
 model Task {

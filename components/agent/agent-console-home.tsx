@@ -16,7 +16,6 @@ import {
   Mic,
   Paperclip,
   Plus,
-  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { KeyboardEvent, useEffect, useMemo, useState } from "react";
@@ -51,25 +50,12 @@ type AgentConfig = {
   hasGoogleApiKey: boolean;
 };
 
-type ThinkingMode = "auto" | "instant" | "thinking" | "pro";
-
 const SUGGESTIONS = [
   "Trip planner",
   "Image generator",
   "Code debugger",
   "Research assistant",
   "Decision helper",
-];
-
-const THINKING_OPTIONS: Array<{
-  id: ThinkingMode;
-  label: string;
-  description: string;
-}> = [
-  { id: "auto", label: "Auto", description: "Decides how long to think." },
-  { id: "instant", label: "Instant", description: "Answers right away." },
-  { id: "thinking", label: "Thinking", description: "Thinks longer for better answers." },
-  { id: "pro", label: "Pro", description: "Research-grade intelligence." },
 ];
 
 const PROVIDER_LABELS: Record<LlmProvider, string> = {
@@ -96,7 +82,6 @@ export function AgentConsoleHome() {
   const [isSwitchingConfig, setIsSwitchingConfig] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
 
-  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>("thinking");
   const [toolMessage, setToolMessage] = useState<string | null>(null);
 
   const [composerInput, setComposerInput] = useState("");
@@ -372,9 +357,6 @@ export function AgentConsoleHome() {
     setToolMessage(`${label} is coming soon.`);
   }
 
-  const selectedThinkingLabel =
-    THINKING_OPTIONS.find((option) => option.id === thinkingMode)?.label ?? "Thinking";
-
   return (
     <section className="relative min-h-[calc(100vh-7.5rem)] rounded-2xl border border-zinc-900/80 bg-zinc-950/40 px-5 py-10 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-7">
       <div className="absolute left-5 top-5 sm:left-7 sm:top-6">
@@ -473,7 +455,7 @@ export function AgentConsoleHome() {
         )}
       </div>
 
-      <div className="mx-auto mt-12 w-full max-w-3xl text-center sm:mt-14">
+      <div className="mx-auto flex min-h-[calc(100vh-18rem)] w-full max-w-3xl flex-col items-center justify-center text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
           What can I help with?
         </h1>
@@ -515,44 +497,6 @@ export function AgentConsoleHome() {
                       <Paperclip className="h-4 w-4 text-zinc-400" />
                       Add photos & files
                     </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex h-10 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-200 transition hover:bg-zinc-800"
-                    aria-label="Select thinking mode"
-                  >
-                    <Sparkles className="h-4 w-4 text-zinc-400" />
-                    {selectedThinkingLabel}
-                    <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
-                  </button>
-                </DropdownMenu.Trigger>
-
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align="start"
-                    sideOffset={10}
-                    className="z-[70] w-72 rounded-2xl border border-zinc-800 bg-zinc-900/95 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.5)] backdrop-blur-md"
-                  >
-                    {THINKING_OPTIONS.map((option) => (
-                      <DropdownMenu.Item
-                        key={option.id}
-                        onSelect={() => setThinkingMode(option.id)}
-                        className="flex cursor-pointer items-start justify-between gap-3 rounded-lg px-2.5 py-2 text-sm outline-none transition hover:bg-zinc-800/80 focus:bg-zinc-800/80"
-                      >
-                        <div>
-                          <p className="font-medium text-zinc-100">{option.label}</p>
-                          <p className="mt-0.5 text-xs text-zinc-400">{option.description}</p>
-                        </div>
-                        {thinkingMode === option.id && (
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300" />
-                        )}
-                      </DropdownMenu.Item>
-                    ))}
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>

@@ -9,6 +9,8 @@ BlackDesk is a personal productivity app with light/dark themes, built with Next
 - Prisma ORM + PostgreSQL (Neon)
 - NextAuth (Credentials + Google OAuth)
 - FullCalendar (month/week/day + drag/drop)
+- FullCalendar list + rrule recurrence + ICS import/export
+- Zod validation on calendar APIs
 
 ## Environment
 
@@ -37,6 +39,11 @@ GOOGLE_API_KEY=""
 5. `npm run dev`
 
 Open `http://localhost:3000`.
+
+If you already have an older local DB, run:
+
+1. `npx prisma migrate dev`
+2. `npx prisma generate`
 
 ## Vercel + Neon Deployment
 
@@ -107,6 +114,19 @@ npm run prisma:seed
 - `/app/agent/prompts/[id]` prompt editor
 - `/app/settings` settings
 
+## Calendar QA Smoke Checklist
+
+1. Open `/app/calendar` and verify events load with no `500` responses.
+2. Create an event from a selected slot (quick modal save).
+3. Open an event -> edit from the right drawer -> save.
+4. Drag or resize an event and verify it persists after refresh.
+5. Switch views: Month / Week / Day / Schedule.
+6. Toggle calendar visibility in the left sidebar and confirm filtering.
+7. Add a second calendar and create events in each calendar.
+8. Search events from the top search bar and jump to a result.
+9. Export `.ics`, then import it back and verify events are added.
+10. Add an in-app reminder and verify toast appears near event time.
+
 ## Notes
 
 - Credentials registration requires first name + last name + email + password.
@@ -121,6 +141,7 @@ npm run prisma:seed
 - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini).
 - Keys are encrypted at rest using `ENCRYPTION_SECRET` (or `NEXTAUTH_SECRET` fallback).
 - Agent can create tasks/events automatically from chat input.
+- Agent event creation now always targets a user calendar (fixes post-migration event-create failures).
 - If no working LLM key is available, the agent uses a limited fallback parser.
 - All Calendar and Task operations are scoped by authenticated user ID.
 - Passwords are hashed with bcryptjs (10 rounds).

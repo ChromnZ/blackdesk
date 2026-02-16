@@ -16,7 +16,7 @@ export default function HelpPage() {
         <ul className="mt-2 space-y-1 text-textMuted">
           <li>1. Settings - update profile, integrations, and API keys.</li>
           <li>2. AI Agent - switch model/provider directly in chat.</li>
-          <li>3. Tasks / Calendar - verify agent-created items.</li>
+          <li>3. Calendar - manage events and tasks in one planner.</li>
         </ul>
       </div>
     </section>

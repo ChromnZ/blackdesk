@@ -1,6 +1,5 @@
-import { TasksView } from "@/components/tasks/tasks-view";
+import { redirect } from "next/navigation";
 
 export default function TasksPage() {
-  return <TasksView />;
+  redirect("/app/calendar");
 }
-

@@ -56,16 +56,13 @@ export default async function DashboardPage() {
           <CardTitle className="mt-2 text-3xl">Dashboard</CardTitle>
           <CardDescription className="mt-2 max-w-2xl">
           Everything starts here. Use AI Agent for quick capture, then manage your
-          timeline and execution in Calendar and Tasks.
+          timeline, tasks, and execution in Calendar.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
         <div className="mt-5 flex flex-wrap gap-3">
             <Button asChild variant="primary">
               <Link href="/app/agent">Open AI Agent</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/app/tasks">View Tasks</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/app/calendar">View Calendar</Link>
@@ -101,10 +98,10 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg">Recently Updated Tasks</h2>
           <Link
-            href="/app/tasks"
+            href="/app/calendar"
             className="text-xs uppercase tracking-[0.18em] text-textMuted transition hover:text-textMain"
           >
-            Open Tasks
+            Open Planner
           </Link>
         </div>
           <Separator className="mt-3" />

@@ -8,6 +8,7 @@ import { discoverAvailableModels } from "@/lib/llm-model-discovery";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/secret";
 import { getAuthUserId } from "@/lib/session";
+import { ensureDefaultCalendar } from "@/lib/calendar";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -99,6 +100,153 @@ function buildMessageMetaFromDecision(data: {
   return null;
 }
 
+const EVENT_INTENT_PATTERN =
+  /\b(appointment|meeting|call|visit|dentist|doctor|event|calendar|schedule|book|reservation|flight|trip|sync)\b/i;
+const TASK_INTENT_PATTERN =
+  /\b(task|todo|to-do|remind me to|i need to|follow up|complete|finish)\b/i;
+
+function parseClockFromMessage(message: string) {
+  const meridianMatch = message.match(/\b(\d{1,2})(?::([0-5]\d))?\s*(am|pm)\b/i);
+  if (meridianMatch) {
+    const rawHour = Number(meridianMatch[1]);
+    const minutes = Number(meridianMatch[2] ?? "0");
+    if (rawHour >= 1 && rawHour <= 12 && minutes >= 0 && minutes <= 59) {
+      const meridian = meridianMatch[3].toLowerCase();
+      let hours = rawHour % 12;
+      if (meridian === "pm") {
+        hours += 12;
+      }
+      return { hours, minutes };
+    }
+  }
+
+  const twentyFourMatch = message.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (twentyFourMatch) {
+    return {
+      hours: Number(twentyFourMatch[1]),
+      minutes: Number(twentyFourMatch[2]),
+    };
+  }
+
+  return null;
+}
+
+function parseNaturalEventStart(message: string) {
+  const lower = message.toLowerCase();
+  const now = new Date();
+  const start = new Date(now);
+  let hasExplicitDate = false;
+  let hasExplicitTime = false;
+
+  if (/\b(tomorrow|tomo|tmrw)\b/.test(lower)) {
+    start.setDate(start.getDate() + 1);
+    hasExplicitDate = true;
+  } else if (/\btoday\b/.test(lower)) {
+    hasExplicitDate = true;
+  } else if (/\btonight\b/.test(lower)) {
+    hasExplicitDate = true;
+    start.setHours(20, 0, 0, 0);
+    hasExplicitTime = true;
+  } else {
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ] as const;
+
+    for (let index = 0; index < dayNames.length; index += 1) {
+      if (!new RegExp(`\\b${dayNames[index]}\\b`, "i").test(lower)) {
+        continue;
+      }
+
+      const currentDay = start.getDay();
+      let offset = (index - currentDay + 7) % 7;
+      if (offset === 0) {
+        offset = 7;
+      }
+      start.setDate(start.getDate() + offset);
+      hasExplicitDate = true;
+      break;
+    }
+  }
+
+  const parsedClock = parseClockFromMessage(lower);
+  if (parsedClock) {
+    start.setHours(parsedClock.hours, parsedClock.minutes, 0, 0);
+    hasExplicitTime = true;
+  } else if (/\bmorning\b/.test(lower)) {
+    start.setHours(9, 0, 0, 0);
+    hasExplicitTime = true;
+  } else if (/\bafternoon\b/.test(lower)) {
+    start.setHours(14, 0, 0, 0);
+    hasExplicitTime = true;
+  } else if (/\bevening\b/.test(lower)) {
+    start.setHours(18, 0, 0, 0);
+    hasExplicitTime = true;
+  } else if (/\bnight\b/.test(lower)) {
+    start.setHours(20, 0, 0, 0);
+    hasExplicitTime = true;
+  }
+
+  if (!hasExplicitDate && !hasExplicitTime) {
+    return null;
+  }
+
+  if (!hasExplicitDate && hasExplicitTime && start.getTime() < now.getTime()) {
+    start.setDate(start.getDate() + 1);
+  }
+
+  if (hasExplicitDate && !hasExplicitTime) {
+    start.setHours(9, 0, 0, 0);
+  }
+
+  return start;
+}
+
+function extractEventTitle(input: string) {
+  let title = input
+    .trim()
+    .replace(/[.?!]+$/g, "")
+    .replace(/^((please)\s+)?(schedule|add|create|book|set up|put)\s+(an?\s+|the\s+)?/i, "")
+    .replace(/^i (have|got)\s+(an?\s+|the\s+)?/i, "")
+    .replace(/^there is\s+/i, "")
+    .replace(/\b(tomorrow|tomo|tmrw|today|tonight)\b.*$/i, "")
+    .replace(/\bat\s+\d{1,2}(:\d{2})?\s*(am|pm)\b.*$/i, "")
+    .replace(/^(a|an|the)\s+/i, "")
+    .trim();
+
+  if (!title) {
+    return "New event";
+  }
+
+  title = title.slice(0, 200);
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
+function extractTaskTitle(input: string) {
+  let title = input
+    .trim()
+    .replace(/[.?!]+$/g, "")
+    .replace(/^task:\s*/i, "")
+    .replace(/^todo:\s*/i, "")
+    .replace(/^to-do:\s*/i, "")
+    .replace(/^remind me to\s+/i, "")
+    .replace(/^i need to\s+/i, "")
+    .replace(/^please\s+/i, "")
+    .trim();
+
+  if (!title) {
+    return "";
+  }
+
+  title = title.slice(0, 200);
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
 function fallbackDecision(input: string): AgentDecision {
   const message = input.trim();
   const lower = message.toLowerCase();
@@ -126,6 +274,38 @@ function fallbackDecision(input: string): AgentDecision {
           title,
           startAt: startAt.toISOString(),
           endAt: endAt.toISOString(),
+        },
+      };
+    }
+  }
+
+  const inferredStart = parseNaturalEventStart(message);
+  if (inferredStart && EVENT_INTENT_PATTERN.test(lower)) {
+    const title = extractEventTitle(message);
+    const endAt = new Date(inferredStart.getTime() + 60 * 60 * 1000);
+
+    return {
+      action: "create_event",
+      reply: `Done. I added "${title}" to your calendar for ${inferredStart.toLocaleString()}.`,
+      event: {
+        title,
+        startAt: inferredStart.toISOString(),
+        endAt: endAt.toISOString(),
+        notes: message,
+      },
+    };
+  }
+
+  if (TASK_INTENT_PATTERN.test(lower)) {
+    const title = extractTaskTitle(message);
+    if (title) {
+      return {
+        action: "create_task",
+        reply: `Done. I created a task: "${title}".`,
+        task: {
+          title,
+          status: "todo",
+          notes: message,
         },
       };
     }
@@ -581,10 +761,12 @@ export async function POST(request: Request) {
           requestedEndAt && requestedEndAt > startAt
             ? requestedEndAt
             : new Date(startAt.getTime() + 60 * 60 * 1000);
+        const defaultCalendar = await ensureDefaultCalendar(userId);
 
         const eventRecord = await prisma.event.create({
           data: {
             userId,
+            calendarId: defaultCalendar.id,
             title,
             startAt,
             endAt,
