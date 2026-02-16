@@ -56,14 +56,13 @@ WHERE NOT EXISTS (
 
 -- Backfill event calendarId
 UPDATE "Event" e
-SET "calendarId" = c."id"
-FROM LATERAL (
-    SELECT "id"
-    FROM "Calendar"
-    WHERE "userId" = e."userId"
-    ORDER BY "createdAt" ASC
+SET "calendarId" = (
+    SELECT c."id"
+    FROM "Calendar" c
+    WHERE c."userId" = e."userId"
+    ORDER BY c."createdAt" ASC
     LIMIT 1
-) c
+)
 WHERE e."calendarId" IS NULL;
 
 ALTER TABLE "Event"
